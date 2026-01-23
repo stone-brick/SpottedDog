@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "spotteddog",
+  "version": "${version}",
+  "name": "SpottedDog",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/spotteddog/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "io.github.stone_brick.spotteddog.client.SpotteddogClient"
+    ],
+    "main": [
+      "io.github.stone_brick.spotteddog.Spotteddog"
+    ]
+  },
+  "mixins": [
+    "spotteddog.mixins.json",
+    {
+      "config": "spotteddog.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
