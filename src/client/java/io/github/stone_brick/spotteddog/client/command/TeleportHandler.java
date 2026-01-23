@@ -9,28 +9,30 @@ import net.minecraft.client.network.ClientPlayerEntity;
 @Environment(EnvType.CLIENT)
 public class TeleportHandler {
 
-    private static final TeleportStrategy STRATEGY;
-
-    static {
+    /**
+     * 获取当前的传送策略。
+     * 每次调用时动态检查当前模式，确保策略正确。
+     */
+    private static TeleportStrategy getStrategy() {
         boolean isSingleplayer = MinecraftClient.getInstance().isInSingleplayer();
-        STRATEGY = isSingleplayer
+        return isSingleplayer
                 ? new SingleplayerTeleportStrategy()
                 : new MultiplayerTeleportStrategy();
     }
 
     public static void teleportToSpot(ClientPlayerEntity player, Spot spot) {
-        STRATEGY.teleportToSpot(player, spot);
+        getStrategy().teleportToSpot(player, spot);
     }
 
     public static void teleportToSpawn(ClientPlayerEntity player) {
-        STRATEGY.teleportToSpawn(player);
+        getStrategy().teleportToSpawn(player);
     }
 
     public static void teleportToDeath(ClientPlayerEntity player) {
-        STRATEGY.teleportToDeath(player);
+        getStrategy().teleportToDeath(player);
     }
 
     public static boolean teleportToRespawn(ClientPlayerEntity player) {
-        return STRATEGY.teleportToRespawn(player);
+        return getStrategy().teleportToRespawn(player);
     }
 }

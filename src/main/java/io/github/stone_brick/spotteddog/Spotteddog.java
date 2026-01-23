@@ -1,15 +1,17 @@
 package io.github.stone_brick.spotteddog;
 
+import io.github.stone_brick.spotteddog.server.network.TeleportRequestHandler;
 import net.fabricmc.api.ModInitializer;
 
 /**
  * SpottedDog 模组主入口。
- * 保留此入口点以支持未来服务端功能扩展。
+ * 处理服务端功能，包括网络通信和命令注册。
  */
 public class Spotteddog implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        // 当前无通用初始化逻辑
+        // 注册服务端网络处理器
+        TeleportRequestHandler.register();
     }
 }
