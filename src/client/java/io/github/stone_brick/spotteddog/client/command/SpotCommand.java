@@ -17,7 +17,9 @@ import net.minecraft.client.network.ServerInfo;
 import net.minecraft.server.integrated.IntegratedServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.WorldSavePath;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
@@ -87,6 +89,13 @@ public class SpotCommand {
                                 .suggests(TELEPORT_SUGGESTIONS)
                                 .executes(context -> teleport(getString(context, "target"))))));
 
+        // /spot tp <target> - teleport 的简写
+        dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
+                .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("tp")
+                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("target", StringArgumentType.word())
+                                .suggests(TELEPORT_SUGGESTIONS)
+                                .executes(context -> teleport(getString(context, "target"))))));
+
         // /spot list
         dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
                 .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("list")
@@ -132,10 +141,13 @@ public class SpotCommand {
     private static String getWorldIdentifier() {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.isInSingleplayer()) {
-            // 单人模式：使用存档名称
+            // 单人模式：使用存档文件夹名称
             IntegratedServer server = client.getServer();
             if (server != null) {
-                return "singleplayer:" + server.getSaveProperties().getLevelName();
+                // WorldSavePath.ROOT 返回 ".", 需要取 parent 获取存档文件夹名
+                Path worldPath = server.getSavePath(WorldSavePath.ROOT).getParent();
+                String worldDir = worldPath != null ? worldPath.getFileName().toString() : "unknown";
+                return "singleplayer:" + worldDir;
             }
             return "singleplayer:unknown";
         } else {
@@ -269,9 +281,13 @@ public class SpotCommand {
             sendFeedback("getServer: " + (server != null ? "not null" : "null"));
 
             if (server != null) {
-                // 测试获取存档名称
-                String worldName = server.getSaveProperties().getLevelName();
-                sendFeedback("worldName: " + worldName);
+                // 测试获取存档信息
+                String levelName = server.getSaveProperties().getLevelName();
+                Path worldPath = server.getSavePath(WorldSavePath.ROOT).getParent();
+                String worldDir = worldPath != null ? worldPath.getFileName().toString() : "unknown";
+                sendFeedback("levelName: " + levelName);
+                sendFeedback("worldDir: " + worldDir);
+                sendFeedback("worldIdentifier: " + getWorldIdentifier());
 
                 var playerManager = server.getPlayerManager();
                 List<ServerPlayerEntity> list = playerManager.getPlayerList();
