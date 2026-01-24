@@ -88,26 +88,29 @@ public class TeleportRequestHandler {
     private static TeleportResult executeTeleport(ServerPlayerEntity player, TeleportRequestC2SPayload payload) {
         String type = payload.type();
         MinecraftServer server = player.getEntityWorld().getServer();
+        // 对于 spawn/respawn/death，使用玩家当前朝向；spot 使用保存的朝向
+        float yaw = payload.type().equals("spot") ? payload.yaw() : player.getYaw();
+        float pitch = payload.type().equals("spot") ? payload.pitch() : player.getPitch();
         return switch (type) {
             case "spawn" -> {
-                // 传送到世界出生点
+                // 传送到世界出生点（BlockPos 需要添加 0.5 偏移，保持玩家当前朝向）
                 ServerWorld overworld = server.getOverworld();
                 BlockPos spawnPos = overworld.getSpawnPoint().getPos();
-                yield teleportTo(player, World.OVERWORLD, spawnPos.getX(), spawnPos.getY(), spawnPos.getZ()) ?
+                yield teleportTo(player, World.OVERWORLD, spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, yaw, pitch) ?
                         TeleportResult.ok() : TeleportResult.fail("Teleport failed");
             }
             case "respawn" -> {
-                // 获取重生点
+                // 获取重生点（BlockPos 需要添加 0.5 偏移，保持玩家当前朝向）
                 var respawn = player.getRespawn();
                 if (respawn == null || respawn.respawnData() == null) {
                     yield TeleportResult.fail("No respawn point set");
                 }
                 BlockPos pos = respawn.respawnData().getPos();
-                yield teleportTo(player, World.OVERWORLD, pos.getX(), pos.getY(), pos.getZ()) ?
+                yield teleportTo(player, World.OVERWORLD, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, yaw, pitch) ?
                         TeleportResult.ok() : TeleportResult.fail("Teleport failed");
             }
             case "death" -> {
-                // 获取死亡点
+                // 获取死亡点（BlockPos 需要添加 0.5 偏移，保持玩家当前朝向）
                 var deathPosOpt = player.getLastDeathPos();
                 if (deathPosOpt.isEmpty()) {
                     yield TeleportResult.fail("No death point recorded");
@@ -115,33 +118,32 @@ public class TeleportRequestHandler {
                 GlobalPos deathPos = deathPosOpt.get();
                 BlockPos pos = deathPos.pos();
                 // GlobalPos.dimension() 直接返回 RegistryKey<World>
-                yield teleportTo(player, deathPos.dimension(), pos.getX(), pos.getY(), pos.getZ()) ?
+                yield teleportTo(player, deathPos.dimension(), pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, yaw, pitch) ?
                         TeleportResult.ok() : TeleportResult.fail("Teleport failed");
             }
             case "spot" -> {
-                // spot 类型使用客户端发送的坐标
+                // spot 类型使用客户端发送的坐标（玩家坐标，无需偏移）
                 double x = payload.x();
                 double y = payload.y();
                 double z = payload.z();
                 String dimension = payload.dimension();
                 RegistryKey<World> worldKey = getWorldKey(dimension);
-                yield teleportTo(player, worldKey, x, y, z) ?
+                yield teleportTo(player, worldKey, x, y, z, yaw, pitch) ?
                         TeleportResult.ok() : TeleportResult.fail("Teleport failed");
             }
             default -> TeleportResult.fail("Unknown teleport type: " + type);
         };
     }
 
-    private static boolean teleportTo(ServerPlayerEntity player, RegistryKey<World> dimension, double x, double y, double z) {
+    private static boolean teleportTo(ServerPlayerEntity player, RegistryKey<World> dimension, double x, double y, double z, float yaw, float pitch) {
         try {
             MinecraftServer server = player.getEntityWorld().getServer();
             ServerWorld targetWorld = server.getWorld(dimension);
             if (targetWorld == null) {
                 return false;
             }
-            // X 和 Z 坐标添加 0.5，使玩家居于方块中心
-            player.teleport(targetWorld, x + 0.5, y, z + 0.5,
-                    EnumSet.noneOf(PositionFlag.class), 0f, 0f, false);
+            player.teleport(targetWorld, x, y, z,
+                    EnumSet.noneOf(PositionFlag.class), yaw, pitch, false);
             return true;
         } catch (Exception e) {
             return false;

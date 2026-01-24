@@ -44,9 +44,9 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
             return;
         }
 
-        // 使用 teleport 方法进行跨维度传送，X 和 Z 添加 0.5 使玩家居于方块中心
-        serverPlayer.teleport(targetWorld, spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5,
-            EnumSet.noneOf(PositionFlag.class), 0f, 0f, false);
+        // 使用 teleport 方法进行跨维度传送，应用保存的 yaw/pitch
+        serverPlayer.teleport(targetWorld, spot.getX(), spot.getY(), spot.getZ(),
+            EnumSet.noneOf(PositionFlag.class), spot.getYaw(), spot.getPitch(), false);
     }
 
     private RegistryKey<World> getWorldKey(String dimension) {
@@ -76,28 +76,69 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
             return;
         }
 
-        // 直接传送到主世界出生点
-        serverPlayer.requestTeleport(0.0, 64.0, 0.0);
+        // 传送到主世界出生点（方块坐标需要添加 0.5 偏移，保持玩家当前朝向）
+        serverPlayer.teleport(server.getOverworld(), 0.5, 64.0, 0.5,
+                EnumSet.noneOf(PositionFlag.class), player.getYaw(), player.getPitch(), false);
     }
 
     @Override
     public void teleportToDeath(ClientPlayerEntity player) {
-        Optional<Spot> deathSpot = getLastDeathLocation(player);
-        if (deathSpot.isPresent()) {
-            teleportToSpot(player, deathSpot.get());
-        } else {
-            player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 未找到死亡点记录"), false);
+        MinecraftClient client = MinecraftClient.getInstance();
+        MinecraftServer server = client.getServer();
+        if (server == null) {
+            player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 传送失败：无法获取服务器"), false);
+            return;
         }
+
+        ServerPlayerEntity serverPlayer = getServerPlayer(server, player);
+        if (serverPlayer == null) {
+            player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 传送失败：无法获取玩家"), false);
+            return;
+        }
+
+        Optional<GlobalPos> deathPosOpt = serverPlayer.getLastDeathPos();
+        if (deathPosOpt.isEmpty()) {
+            player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 未找到死亡点记录"), false);
+            return;
+        }
+
+        GlobalPos deathPos = deathPosOpt.get();
+        BlockPos pos = deathPos.pos();
+        String dimension = deathPos.dimension().getValue().toString();
+
+        // 获取目标世界
+        RegistryKey<World> targetKey = getWorldKey(dimension);
+        ServerWorld targetWorld = server.getWorld(targetKey);
+        if (targetWorld == null) {
+            player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 传送失败：无法获取目标世界"), false);
+            return;
+        }
+
+        // 传送到死亡点（方块坐标需要添加 0.5 偏移，保持玩家当前朝向）
+        serverPlayer.teleport(targetWorld, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5,
+                EnumSet.noneOf(PositionFlag.class), player.getYaw(), player.getPitch(), false);
     }
 
     @Override
     public boolean teleportToRespawn(ClientPlayerEntity player) {
-        Optional<Spot> respawnSpot = getRespawnLocation(player);
-        if (respawnSpot.isPresent()) {
-            teleportToSpot(player, respawnSpot.get());
-            return true;
+        MinecraftClient client = MinecraftClient.getInstance();
+        MinecraftServer server = client.getServer();
+        if (server == null) return false;
+
+        ServerPlayerEntity serverPlayer = getServerPlayer(server, player);
+        if (serverPlayer == null) return false;
+
+        var respawn = serverPlayer.getRespawn();
+        if (respawn == null || respawn.respawnData() == null) {
+            return false;
         }
-        return false;
+
+        BlockPos pos = respawn.respawnData().getPos();
+
+        // 传送到重生点（方块坐标需要添加 0.5 偏移，保持玩家当前朝向）
+        serverPlayer.teleport(server.getOverworld(), pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5,
+                EnumSet.noneOf(PositionFlag.class), player.getYaw(), player.getPitch(), false);
+        return true;
     }
 
     private ServerPlayerEntity getServerPlayer(MinecraftServer server, ClientPlayerEntity player) {
@@ -123,7 +164,7 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
         return Optional.of(new Spot(
             "respawn", "RespawnPoint",
             pos.getX(), pos.getY(), pos.getZ(),
-            "minecraft:overworld", "Singleplayer", null
+            0f, 0f, "minecraft:overworld", "Singleplayer", null
         ));
     }
 
@@ -145,7 +186,7 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
         return Optional.of(new Spot(
             "death", "DeathPoint",
             pos.getX(), pos.getY(), pos.getZ(),
-            dimension, "Singleplayer", null
+            0f, 0f, dimension, "Singleplayer", null
         ));
     }
 }

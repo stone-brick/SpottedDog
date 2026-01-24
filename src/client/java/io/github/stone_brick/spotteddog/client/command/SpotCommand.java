@@ -170,7 +170,7 @@ public class SpotCommand {
 
         String worldId = getWorldIdentifier();
         if (dataManager.addSpot(name, player.getX(), player.getY(), player.getZ(),
-                getCurrentDimension(), getCurrentWorldName(), worldId)) {
+                player.getYaw(), player.getPitch(), getCurrentDimension(), getCurrentWorldName(), worldId)) {
             sendFeedback("[SpottedDog] 已添加标记点: " + name);
         } else {
             sendFeedback("[SpottedDog] 标记点 '" + name + "' 已存在");
@@ -194,7 +194,7 @@ public class SpotCommand {
 
         String worldId = getWorldIdentifier();
         if (dataManager.updateSpotPosition(name, player.getX(), player.getY(), player.getZ(),
-                getCurrentDimension(), getCurrentWorldName(), worldId)) {
+                player.getYaw(), player.getPitch(), getCurrentDimension(), getCurrentWorldName(), worldId)) {
             sendFeedback("[SpottedDog] 已更新标记点: " + name);
         } else {
             sendFeedback("[SpottedDog] 未找到标记点: " + name);

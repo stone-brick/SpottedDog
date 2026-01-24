@@ -17,27 +17,29 @@ public class MultiplayerTeleportStrategy implements TeleportStrategy {
     public void teleportToSpot(ClientPlayerEntity player, Spot spot) {
         sendTeleportRequest(player, new TeleportRequestC2SPayload(
                 "spot", spot.getName(),
-                spot.getX(), spot.getY(), spot.getZ(), spot.getDimension()));
+                spot.getX(), spot.getY(), spot.getZ(),
+                spot.getYaw(), spot.getPitch(), spot.getDimension()));
     }
 
     @Override
     public void teleportToSpawn(ClientPlayerEntity player) {
+        // 发送当前玩家的 yaw/pitch，服务端会使用它
         sendTeleportRequest(player, new TeleportRequestC2SPayload(
-                "spawn", "spawn", 0, 64, 0, "minecraft:overworld"));
+                "spawn", "spawn", 0, 64, 0, player.getYaw(), player.getPitch(), "minecraft:overworld"));
     }
 
     @Override
     public void teleportToDeath(ClientPlayerEntity player) {
-        // 发送请求，让服务端获取死亡点位置
+        // 发送当前玩家的 yaw/pitch，服务端会使用它
         sendTeleportRequest(player, new TeleportRequestC2SPayload(
-                "death", "death", 0, 0, 0, ""));
+                "death", "death", 0, 0, 0, player.getYaw(), player.getPitch(), ""));
     }
 
     @Override
     public boolean teleportToRespawn(ClientPlayerEntity player) {
-        // 发送请求，让服务端获取重生点位置
+        // 发送当前玩家的 yaw/pitch，服务端会使用它
         sendTeleportRequest(player, new TeleportRequestC2SPayload(
-                "respawn", "respawn", 0, 0, 0, ""));
+                "respawn", "respawn", 0, 0, 0, player.getYaw(), player.getPitch(), ""));
         return true;
     }
 

@@ -63,11 +63,11 @@ public class PlayerDataManager {
     }
 
     // Spot operations - 新增带 worldIdentifier 参数的方法
-    public boolean addSpot(String name, double x, double y, double z, String dimension, String world, String worldIdentifier) {
+    public boolean addSpot(String name, double x, double y, double z, float yaw, float pitch, String dimension, String world, String worldIdentifier) {
         if (spots.stream().anyMatch(s -> s.getName().equals(name) && Objects.equals(s.getWorldIdentifier(), worldIdentifier))) {
             return false;
         }
-        Spot spot = new Spot(UUID.randomUUID().toString(), name, x, y, z, dimension, world, worldIdentifier);
+        Spot spot = new Spot(UUID.randomUUID().toString(), name, x, y, z, yaw, pitch, dimension, world, worldIdentifier);
         spots.add(spot);
         saveSpots();
         return true;
@@ -81,10 +81,10 @@ public class PlayerDataManager {
         return removed;
     }
 
-    public boolean updateSpotPosition(String name, double x, double y, double z, String dimension, String world, String worldIdentifier) {
+    public boolean updateSpotPosition(String name, double x, double y, double z, float yaw, float pitch, String dimension, String world, String worldIdentifier) {
         Optional<Spot> spot = spots.stream().filter(s -> s.getName().equals(name) && Objects.equals(s.getWorldIdentifier(), worldIdentifier)).findFirst();
         if (spot.isPresent()) {
-            spot.get().setPosition(x, y, z, dimension, world, worldIdentifier);
+            spot.get().setPositionAndRotation(x, y, z, yaw, pitch, dimension, world, worldIdentifier);
             saveSpots();
             return true;
         }

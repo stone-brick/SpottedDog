@@ -27,11 +27,18 @@ SpottedDog 是一个 Minecraft Fabric 模组，用于 Minecraft 1.21.11，使用
 
 详细规范请查看 Skills：
 
-- **Fabric 模组开发** → `.claude/skills/Fabric模组开发规范/SKILL.md`
-- **Java 开发规范** → `.claude/skills/Java开发规范/SKILL.md`
-- **本项目开发规范** → `.claude/skills/本项目的开发规范/SKILL.md`
-- **Git 提交规范** → `.claude/skills/开发中的Git相关规范/SKILL.md`
-- **Skill 管理方式** → `.claude/skills/skill管理方式/SKILL.md`
+| Skill | 说明 |
+|-------|------|
+| **本项目开发规范** | 项目特定开发约定、设计原则、代码组织规则 |
+| **Fabric 模组开发规范** | Fabric模组开发、入口点配置、源集架构、Minecraft源码参考 |
+| **Java 开发规范** | Java代码风格、命名规范、注释要求 |
+| **Git 提交规范** | Git提交规范、推送策略、构建检查 |
+| **Skill 管理方式** | skill文件的增删改操作指南 |
+
+**技能关联**：
+- 编写本项目代码 → 先看「本项目开发规范」
+- 涉及 Fabric 开发 → 参考「Fabric 模组开发规范」
+- 编写代码风格 → 参考「Java 开发规范」
 
 > **提示**：随着项目发展，可扩展或修改 Skill 文件以更新规范。详见 `skill管理方式/SKILL.md`
 

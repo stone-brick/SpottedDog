@@ -13,6 +13,8 @@ public record TeleportRequestC2SPayload(
         double x,
         double y,
         double z,
+        float yaw,
+        float pitch,
         String dimension
 ) implements CustomPayload {
 
@@ -27,6 +29,8 @@ public record TeleportRequestC2SPayload(
                         buf.writeDouble(payload.x());
                         buf.writeDouble(payload.y());
                         buf.writeDouble(payload.z());
+                        buf.writeFloat(payload.yaw());
+                        buf.writeFloat(payload.pitch());
                         buf.writeString(payload.dimension());
                     },
                     buf -> new TeleportRequestC2SPayload(
@@ -35,6 +39,8 @@ public record TeleportRequestC2SPayload(
                             buf.readDouble(),
                             buf.readDouble(),
                             buf.readDouble(),
+                            buf.readFloat(),
+                            buf.readFloat(),
                             buf.readString()
                     )
             );

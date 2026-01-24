@@ -6,6 +6,8 @@ public class Spot {
     private double x;
     private double y;
     private double z;
+    private float yaw;
+    private float pitch;
     private String dimension;
     private String world;
     private String worldIdentifier; // 存档/服务器唯一标识
@@ -13,12 +15,14 @@ public class Spot {
     public Spot() {
     }
 
-    public Spot(String id, String name, double x, double y, double z, String dimension, String world, String worldIdentifier) {
+    public Spot(String id, String name, double x, double y, double z, float yaw, float pitch, String dimension, String world, String worldIdentifier) {
         this.id = id;
         this.name = name;
         this.x = x;
         this.y = y;
         this.z = z;
+        this.yaw = yaw;
+        this.pitch = pitch;
         this.dimension = dimension;
         this.world = world;
         this.worldIdentifier = worldIdentifier;
@@ -95,5 +99,32 @@ public class Spot {
         this.dimension = dimension;
         this.world = world;
         this.worldIdentifier = worldIdentifier;
+    }
+
+    public void setPositionAndRotation(double x, double y, double z, float yaw, float pitch, String dimension, String world, String worldIdentifier) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.yaw = yaw;
+        this.pitch = pitch;
+        this.dimension = dimension;
+        this.world = world;
+        this.worldIdentifier = worldIdentifier;
+    }
+
+    public float getYaw() {
+        return yaw;
+    }
+
+    public void setYaw(float yaw) {
+        this.yaw = yaw;
+    }
+
+    public float getPitch() {
+        return pitch;
+    }
+
+    public void setPitch(float pitch) {
+        this.pitch = pitch;
     }
 }
