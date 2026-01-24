@@ -8,11 +8,12 @@ public class Spot {
     private double z;
     private String dimension;
     private String world;
+    private String worldIdentifier; // 存档/服务器唯一标识
 
     public Spot() {
     }
 
-    public Spot(String id, String name, double x, double y, double z, String dimension, String world) {
+    public Spot(String id, String name, double x, double y, double z, String dimension, String world, String worldIdentifier) {
         this.id = id;
         this.name = name;
         this.x = x;
@@ -20,6 +21,7 @@ public class Spot {
         this.z = z;
         this.dimension = dimension;
         this.world = world;
+        this.worldIdentifier = worldIdentifier;
     }
 
     public String getId() {
@@ -78,11 +80,20 @@ public class Spot {
         this.world = world;
     }
 
-    public void setPosition(double x, double y, double z, String dimension, String world) {
+    public String getWorldIdentifier() {
+        return worldIdentifier;
+    }
+
+    public void setWorldIdentifier(String worldIdentifier) {
+        this.worldIdentifier = worldIdentifier;
+    }
+
+    public void setPosition(double x, double y, double z, String dimension, String world, String worldIdentifier) {
         this.x = x;
         this.y = y;
         this.z = z;
         this.dimension = dimension;
         this.world = world;
+        this.worldIdentifier = worldIdentifier;
     }
 }

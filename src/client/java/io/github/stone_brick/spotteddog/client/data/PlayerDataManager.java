@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -61,38 +62,38 @@ public class PlayerDataManager {
         }
     }
 
-    // Spot operations
-    public boolean addSpot(String name, double x, double y, double z, String dimension, String world) {
-        if (spots.stream().anyMatch(s -> s.getName().equals(name))) {
+    // Spot operations - 新增带 worldIdentifier 参数的方法
+    public boolean addSpot(String name, double x, double y, double z, String dimension, String world, String worldIdentifier) {
+        if (spots.stream().anyMatch(s -> s.getName().equals(name) && Objects.equals(s.getWorldIdentifier(), worldIdentifier))) {
             return false;
         }
-        Spot spot = new Spot(UUID.randomUUID().toString(), name, x, y, z, dimension, world);
+        Spot spot = new Spot(UUID.randomUUID().toString(), name, x, y, z, dimension, world, worldIdentifier);
         spots.add(spot);
         saveSpots();
         return true;
     }
 
-    public boolean removeSpot(String name) {
-        boolean removed = spots.removeIf(s -> s.getName().equals(name));
+    public boolean removeSpot(String name, String worldIdentifier) {
+        boolean removed = spots.removeIf(s -> s.getName().equals(name) && Objects.equals(s.getWorldIdentifier(), worldIdentifier));
         if (removed) {
             saveSpots();
         }
         return removed;
     }
 
-    public boolean updateSpotPosition(String name, double x, double y, double z, String dimension, String world) {
-        Optional<Spot> spot = spots.stream().filter(s -> s.getName().equals(name)).findFirst();
+    public boolean updateSpotPosition(String name, double x, double y, double z, String dimension, String world, String worldIdentifier) {
+        Optional<Spot> spot = spots.stream().filter(s -> s.getName().equals(name) && Objects.equals(s.getWorldIdentifier(), worldIdentifier)).findFirst();
         if (spot.isPresent()) {
-            spot.get().setPosition(x, y, z, dimension, world);
+            spot.get().setPosition(x, y, z, dimension, world, worldIdentifier);
             saveSpots();
             return true;
         }
         return false;
     }
 
-    public boolean renameSpot(String oldName, String newName) {
-        Optional<Spot> spot = spots.stream().filter(s -> s.getName().equals(oldName)).findFirst();
-        if (spot.isPresent() && spots.stream().noneMatch(s -> s.getName().equals(newName))) {
+    public boolean renameSpot(String oldName, String newName, String worldIdentifier) {
+        Optional<Spot> spot = spots.stream().filter(s -> s.getName().equals(oldName) && Objects.equals(s.getWorldIdentifier(), worldIdentifier)).findFirst();
+        if (spot.isPresent() && spots.stream().noneMatch(s -> s.getName().equals(newName) && Objects.equals(s.getWorldIdentifier(), worldIdentifier))) {
             spot.get().setName(newName);
             saveSpots();
             return true;
@@ -100,15 +101,18 @@ public class PlayerDataManager {
         return false;
     }
 
-    public Optional<Spot> getSpot(String name) {
-        return spots.stream().filter(s -> s.getName().equals(name)).findFirst();
+    public Optional<Spot> getSpot(String name, String worldIdentifier) {
+        return spots.stream().filter(s -> s.getName().equals(name) && Objects.equals(s.getWorldIdentifier(), worldIdentifier)).findFirst();
     }
 
-    public List<Spot> getAllSpots() {
-        return new ArrayList<>(spots);
+    // 获取当前世界的所有 spots
+    public List<Spot> getAllSpots(String worldIdentifier) {
+        return spots.stream()
+                .filter(s -> Objects.equals(s.getWorldIdentifier(), worldIdentifier))
+                .toList();
     }
 
-    public boolean spotExists(String name) {
-        return spots.stream().anyMatch(s -> s.getName().equals(name));
+    public boolean spotExists(String name, String worldIdentifier) {
+        return spots.stream().anyMatch(s -> s.getName().equals(name) && Objects.equals(s.getWorldIdentifier(), worldIdentifier));
     }
 }

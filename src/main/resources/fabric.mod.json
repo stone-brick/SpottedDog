@@ -18,11 +18,7 @@
     ]
   },
   "mixins": [
-    "spotteddog.mixins.json",
-    {
-      "config": "spotteddog.client.mixins.json",
-      "environment": "client"
-    }
+    "spotteddog.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=${loader_version}",
