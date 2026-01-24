@@ -44,8 +44,8 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
             return;
         }
 
-        // 使用 teleport 方法进行跨维度传送
-        serverPlayer.teleport(targetWorld, spot.getX(), spot.getY(), spot.getZ(),
+        // 使用 teleport 方法进行跨维度传送，X 和 Z 添加 0.5 使玩家居于方块中心
+        serverPlayer.teleport(targetWorld, spot.getX() + 0.5, spot.getY(), spot.getZ() + 0.5,
             EnumSet.noneOf(PositionFlag.class), 0f, 0f, false);
     }
 
