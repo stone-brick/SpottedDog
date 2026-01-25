@@ -144,7 +144,7 @@ public class PublicSpotManager {
      */
     public synchronized boolean unpublishSpot(String ownerName, String spotName, String worldIdentifier) {
         boolean removed = publicSpots.removeIf(s ->
-                s.getOwnerName().equals(ownerName) &&
+                s.getOwnerName().equalsIgnoreCase(ownerName) &&
                         s.getDisplayName().equals(spotName) &&
                         s.getWorldIdentifier().equals(worldIdentifier));
 
@@ -190,11 +190,20 @@ public class PublicSpotManager {
     }
 
     /**
-     * 获取指定玩家的所有公开 Spot。
+     * 获取指定玩家的所有公开 Spot（不区分大小写）。
      */
     public synchronized List<PublicSpot> getPublicSpotsByOwner(String ownerName) {
         return publicSpots.stream()
-                .filter(s -> s.getOwnerName().equals(ownerName))
+                .filter(s -> s.getOwnerName().equalsIgnoreCase(ownerName))
+                .toList();
+    }
+
+    /**
+     * 获取指定玩家的所有公开 Spot（通过 UUID）。
+     */
+    public synchronized List<PublicSpot> getPublicSpotsByOwnerUuid(String ownerUuid) {
+        return publicSpots.stream()
+                .filter(s -> s.getOwnerUuid().equals(ownerUuid))
                 .toList();
     }
 
@@ -218,9 +227,35 @@ public class PublicSpotManager {
         String ownerName = withoutPrefix.substring(lastDashIndex + 1);
 
         return publicSpots.stream()
-                .filter(s -> s.getOwnerName().equals(ownerName))
+                .filter(s -> s.getOwnerName().equalsIgnoreCase(ownerName))
                 .filter(s -> s.getDisplayName().equals(spotName))
                 .filter(s -> s.getWorldIdentifier().equals(worldIdentifier))
+                .findFirst();
+    }
+
+    /**
+     * 通过完整名称和玩家 UUID 获取公开 Spot。
+     * 使用 UUID 匹配避免同一玩家从不同地址连接时找不到 Spot 的问题。
+     * 完整名称格式：-spotName-ownerName
+     * 例如：-home-stone_brick
+     */
+    public synchronized Optional<PublicSpot> getPublicSpotByFullNameWithUuid(String fullName, String ownerUuid) {
+        if (!fullName.startsWith("-")) {
+            return Optional.empty();
+        }
+
+        String withoutPrefix = fullName.substring(1);
+        int lastDashIndex = withoutPrefix.lastIndexOf('-');
+        if (lastDashIndex == -1 || lastDashIndex == 0 || lastDashIndex == withoutPrefix.length() - 1) {
+            return Optional.empty();
+        }
+
+        String spotName = withoutPrefix.substring(0, lastDashIndex);
+        // ownerName 只用于显示，不用于匹配
+
+        return publicSpots.stream()
+                .filter(s -> s.getOwnerUuid().equals(ownerUuid))
+                .filter(s -> s.getDisplayName().equals(spotName))
                 .findFirst();
     }
 

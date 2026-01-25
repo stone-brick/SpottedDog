@@ -52,8 +52,8 @@ public class SpotCommand {
             }
         }
 
-        // 添加公开 Spot（带 - 前缀），同时请求最新列表
-        if (remaining.startsWith("-")) {
+        // 添加公开 Spot（带 - 前缀），仅在多人模式下
+        if (remaining.startsWith("-") && !MinecraftClient.getInstance().isInSingleplayer()) {
             // 自动请求公开 Spot 列表
             requestPublicSpotsIfNeeded();
 
@@ -77,9 +77,6 @@ public class SpotCommand {
         long now = System.currentTimeMillis();
         if (now - lastPublicSpotRequestTime > REQUEST_COOLDOWN_MS) {
             lastPublicSpotRequestTime = now;
-            if (MinecraftClient.getInstance().isInSingleplayer()) {
-                return; // 单人模式不需要
-            }
             if (TeleportHandler.getStrategy() instanceof MultiplayerTeleportStrategy strategy) {
                 strategy.requestPublicSpotList(null);
             }
@@ -317,10 +314,12 @@ public class SpotCommand {
         // 处理公开 Spot（带 - 前缀）
         if (target.startsWith("-")) {
             if (MinecraftClient.getInstance().isInSingleplayer()) {
-                sendFeedback("[SpottedDog] 公开 Spot 仅在多人模式下可用");
+                // 单人模式不处理公开 Spot，提示未找到
+                sendFeedback("[SpottedDog] 未找到标记点: " + target);
                 return Command.SINGLE_SUCCESS;
             }
 
+            // 多人模式当作公开 Spot 处理
             if (TeleportHandler.getStrategy() instanceof MultiplayerTeleportStrategy strategy) {
                 strategy.teleportToPublicSpot(player, target);
             }

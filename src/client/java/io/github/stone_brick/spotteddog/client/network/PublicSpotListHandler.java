@@ -86,13 +86,14 @@ public class PublicSpotListHandler {
                 ));
             }
 
-            // 回调
+            // 回调（如果调用方需要自定义处理）
             if (listCallback != null) {
                 listCallback.accept(new ArrayList<>(publicSpots));
                 listCallback = null;
+                return; // 回调负责显示消息，不显示默认消息
             }
 
-            // 显示消息
+            // 显示默认消息
             if (publicSpots.isEmpty()) {
                 player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 当前没有公开的 Spot"), false);
             } else {

@@ -99,12 +99,8 @@ public class PublicSpotHandler {
         ServerPlayNetworking.registerGlobalReceiver(PublicSpotListC2SPayload.ID, (payload, context) -> {
             ServerPlayerEntity player = context.player();
 
-            List<PublicSpot> spots;
-            if (payload.worldIdentifier().isEmpty()) {
-                spots = PublicSpotManager.getInstance().getAllPublicSpots();
-            } else {
-                spots = PublicSpotManager.getInstance().getPublicSpotsByWorld(payload.worldIdentifier());
-            }
+            // 获取所有公开 Spot（服务器范围，不按 worldIdentifier 隔离）
+            List<PublicSpot> spots = PublicSpotManager.getInstance().getAllPublicSpots();
 
             // 转换为网络传输格式
             List<PublicSpotListS2CPayload.PublicSpotInfo> spotInfos = new ArrayList<>();
@@ -125,6 +121,7 @@ public class PublicSpotHandler {
         ServerPlayNetworking.registerGlobalReceiver(PublicSpotTeleportC2SPayload.ID, (payload, context) -> {
             ServerPlayerEntity player = context.player();
             MinecraftServer server = player.getEntityWorld().getServer();
+            String playerUuid = player.getUuid().toString();
 
             // 验证冷却时间
             if (CooldownManager.isInCooldown(player)) {
@@ -149,9 +146,9 @@ public class PublicSpotHandler {
                 return;
             }
 
-            // 查找公开 Spot
+            // 使用 UUID 查找公开 Spot（避免同一玩家从不同地址连接时找不到 Spot）
             Optional<PublicSpot> spotOpt = PublicSpotManager.getInstance()
-                    .getPublicSpotByFullName(payload.fullName(), payload.worldIdentifier());
+                    .getPublicSpotByFullNameWithUuid(payload.fullName(), playerUuid);
 
             if (spotOpt.isEmpty()) {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
