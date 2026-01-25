@@ -30,12 +30,15 @@ public class SpotCommand {
     private static final PlayerDataManager dataManager = PlayerDataManager.getInstance();
     private static final String[] SPECIAL_TARGETS = {"death", "respawn", "spawn"};
 
-    // 自动补全提供者：包含用户保存的 spot 名称和特殊目标
+    // 自动补全提供者：包含用户保存的 spot 名称和特殊目标（带 . 前缀）
     private static final SuggestionProvider<FabricClientCommandSource> TELEPORT_SUGGESTIONS = (context, builder) -> {
-        // 添加特殊目标
+        String remaining = builder.getRemaining().toLowerCase();
+
+        // 添加特殊目标（带 . 前缀）
         for (String target : SPECIAL_TARGETS) {
-            if (target.toLowerCase().startsWith(builder.getRemaining().toLowerCase())) {
-                builder.suggest(target);
+            String suggestion = "." + target;
+            if (suggestion.startsWith(remaining)) {
+                builder.suggest(suggestion);
             }
         }
 
@@ -43,7 +46,7 @@ public class SpotCommand {
         List<Spot> spots = dataManager.getAllSpots(getWorldIdentifier());
         for (Spot spot : spots) {
             String name = spot.getName();
-            if (name.toLowerCase().startsWith(builder.getRemaining().toLowerCase())) {
+            if (name.toLowerCase().startsWith(remaining)) {
                 builder.suggest(name);
             }
         }
@@ -168,6 +171,12 @@ public class SpotCommand {
         ClientPlayerEntity player = getPlayer();
         if (player == null) return 0;
 
+        // 检查名称是否以 . 开头
+        if (name.startsWith(".")) {
+            sendFeedback("[SpottedDog] 标记点名称不能以 '.' 开头");
+            return Command.SINGLE_SUCCESS;
+        }
+
         String worldId = getWorldIdentifier();
         if (dataManager.addSpot(name, player.getX(), player.getY(), player.getZ(),
                 player.getYaw(), player.getPitch(), getCurrentDimension(), getCurrentWorldName(), worldId)) {
@@ -203,6 +212,12 @@ public class SpotCommand {
     }
 
     private static int renameSpot(String oldName, String newName) {
+        // 检查新名称是否以 . 开头
+        if (newName.startsWith(".")) {
+            sendFeedback("[SpottedDog] 标记点名称不能以 '.' 开头");
+            return Command.SINGLE_SUCCESS;
+        }
+
         String worldId = getWorldIdentifier();
         if (dataManager.renameSpot(oldName, newName, worldId)) {
             sendFeedback("[SpottedDog] 已将 '" + oldName + "' 重命名为 '" + newName + "'");
@@ -216,14 +231,16 @@ public class SpotCommand {
         ClientPlayerEntity player = getPlayer();
         if (player == null) return 0;
 
-        // 处理特殊目标
-        switch (target.toLowerCase()) {
-            case "death" -> {
+        String lowerTarget = target.toLowerCase();
+
+        // 处理特殊目标（带 . 前缀）
+        switch (lowerTarget) {
+            case ".death" -> {
                 TeleportHandler.teleportToDeath(player);
                 sendFeedback("[SpottedDog] 已传送到死亡点");
                 return Command.SINGLE_SUCCESS;
             }
-            case "respawn" -> {
+            case ".respawn" -> {
                 if (TeleportHandler.teleportToRespawn(player)) {
                     sendFeedback("[SpottedDog] 已传送到重生点");
                 } else {
@@ -231,7 +248,7 @@ public class SpotCommand {
                 }
                 return Command.SINGLE_SUCCESS;
             }
-            case "spawn" -> {
+            case ".spawn" -> {
                 TeleportHandler.teleportToSpawn(player);
                 sendFeedback("[SpottedDog] 已传送到世界出生点");
                 return Command.SINGLE_SUCCESS;

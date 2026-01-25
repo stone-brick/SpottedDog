@@ -55,6 +55,7 @@ Minecraft 源码已移动到 `Fabric模组开发规范` skill 目录下：
 - **已完成**：客户端多人模式功能（网络传送、spawn/respawn/death/spot）
 - **已完成**：服务端传送请求处理
 - **已完成**：存档/服务器隔离存储（不同存档和服务器数据分离管理）
+- **已完成**：朝向保存与恢复（添加/更新时保存 yaw/pitch，传送时应用）
 
 ## 网络架构
 
@@ -87,3 +88,20 @@ String worldDir = worldPath.getFileName().toString();
 - 单人模式：`singleplayer:<存档文件夹名>`
 - 多人模式：`multiplayer:<服务器地址>`
 - 使用 `Objects.equals()` 处理旧数据 `worldIdentifier` 为 null 的情况
+
+## 朝向保存与恢复实现
+
+**数据模型**：
+- Spot 添加 `yaw` 和 `pitch` 字段（float 类型）
+- 添加/更新时保存 `player.getYaw()` 和 `player.getPitch()`
+
+**传送时朝向策略**：
+| 类型 | 坐标偏移 | 朝向来源 |
+|------|----------|----------|
+| `spot` | 无偏移 | 保存的 yaw/pitch |
+| `spawn`/`respawn`/`death` | +0.5 | 玩家当前朝向 |
+
+**实现要点**：
+- 特殊目标使用服务端 `player.getYaw()` 获取玩家当前朝向
+- spot 使用客户端发送的保存朝向
+- 服务端根据 type 判断使用哪种朝向来源
