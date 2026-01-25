@@ -166,7 +166,7 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
         return Optional.of(new Spot(
             "respawn", "RespawnPoint",
             pos.getX(), pos.getY(), pos.getZ(),
-            0f, 0f, "minecraft:overworld", false
+            0f, 0f, "minecraft:overworld"
         ));
     }
 
@@ -188,7 +188,7 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
         return Optional.of(new Spot(
             "death", "DeathPoint",
             pos.getX(), pos.getY(), pos.getZ(),
-            0f, 0f, dimension, false
+            0f, 0f, dimension
         ));
     }
 }

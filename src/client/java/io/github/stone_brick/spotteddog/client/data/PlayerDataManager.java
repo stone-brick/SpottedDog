@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * 玩家数据管理器。
@@ -194,28 +193,5 @@ public class PlayerDataManager {
         WorldData wd = map.get(worldIdentifier);
         if (wd == null) return false;
         return wd.spots.stream().anyMatch(s -> s.getName().equals(name));
-    }
-
-    // 设置 Spot 公开状态
-    public boolean setSpotPublic(String name, String worldIdentifier, boolean isPublic) {
-        Map<String, WorldData> map = getWorldDataMap(worldIdentifier);
-        WorldData wd = map.get(worldIdentifier);
-        if (wd == null) return false;
-
-        Optional<Spot> spot = wd.spots.stream().filter(s -> s.getName().equals(name)).findFirst();
-        if (spot.isPresent()) {
-            spot.get().setPublic(isPublic);
-            saveWorldData(worldIdentifier);
-            return true;
-        }
-        return false;
-    }
-
-    // 获取 Spot 公开状态
-    public boolean isSpotPublic(String name, String worldIdentifier) {
-        Map<String, WorldData> map = getWorldDataMap(worldIdentifier);
-        WorldData wd = map.get(worldIdentifier);
-        if (wd == null) return false;
-        return wd.spots.stream().anyMatch(s -> s.getName().equals(name) && s.isPublic());
     }
 }

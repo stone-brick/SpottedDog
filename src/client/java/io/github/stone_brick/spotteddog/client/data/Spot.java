@@ -15,7 +15,6 @@ public class Spot {
     private float yaw;
     private float pitch;
     private String dimension;
-    private boolean isPublic; // 是否已公开（仅多人模式有效）
 
     public Spot() {
     }
@@ -29,10 +28,9 @@ public class Spot {
         this.yaw = yaw;
         this.pitch = pitch;
         this.dimension = dimension;
-        this.isPublic = false;
     }
 
-    public Spot(String id, String name, double x, double y, double z, float yaw, float pitch, String dimension, boolean isPublic) {
+    public Spot(String id, String name, double x, double y, double z, float yaw, float pitch, String dimension) {
         this.id = id;
         this.name = name;
         this.x = x;
@@ -41,7 +39,6 @@ public class Spot {
         this.yaw = yaw;
         this.pitch = pitch;
         this.dimension = dimension;
-        this.isPublic = isPublic;
     }
 
     // Getters and Setters
@@ -68,9 +65,6 @@ public class Spot {
 
     public String getDimension() { return dimension; }
     public void setDimension(String dimension) { this.dimension = dimension; }
-
-    public boolean isPublic() { return isPublic; }
-    public void setPublic(boolean isPublic) { this.isPublic = isPublic; }
 
     public void setPosition(double x, double y, double z, String dimension) {
         this.x = x;
