@@ -2,6 +2,8 @@ package io.github.stone_brick.spotteddog.server.network;
 
 import io.github.stone_brick.spotteddog.network.c2s.TeleportRequestC2SPayload;
 import io.github.stone_brick.spotteddog.network.s2c.TeleportConfirmS2CPayload;
+import io.github.stone_brick.spotteddog.server.config.ConfigManager;
+import io.github.stone_brick.spotteddog.server.config.CooldownManager;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.packet.s2c.play.PositionFlag;
@@ -32,17 +34,32 @@ public class TeleportRequestHandler {
      * 注册服务端数据包处理器。
      */
     public static void register() {
+        // 加载配置（首次使用时创建配置文件）
+        ConfigManager.loadOrCreate();
+
         // 动态注册 S2C 负载类型
         PayloadTypeRegistry.playS2C().register(TeleportConfirmS2CPayload.ID, TeleportConfirmS2CPayload.CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(TeleportRequestC2SPayload.ID, (payload, context) -> {
             ServerPlayerEntity player = context.player();
-            if (player == null) {
-                return;
-            }
 
             String type = payload.type();
             String targetName = payload.targetName();
+
+            // 验证冷却时间
+            if (CooldownManager.isInCooldown(player)) {
+                int remaining = CooldownManager.getRemainingCooldown(player);
+                ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
+                        type, targetName, "冷却中，请等待 " + remaining + " 秒"));
+                return;
+            }
+
+            // 验证全局速率限制
+            if (!CooldownManager.tryIncrementGlobalCount()) {
+                ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
+                        type, targetName, "服务器繁忙，请稍后再试"));
+                return;
+            }
 
             // 验证权限（TODO: 后续添加权限管理）
             if (!hasPermission(player, type)) {
@@ -55,6 +72,8 @@ public class TeleportRequestHandler {
             TeleportResult result = executeTeleport(player, payload);
 
             if (result.success()) {
+                // 传送成功，更新冷却时间
+                CooldownManager.updateLastTeleport(player);
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.success(payload.type(), payload.targetName()));
             } else {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(type, targetName, result.message()));
@@ -65,6 +84,7 @@ public class TeleportRequestHandler {
     /**
      * 检查玩家是否有执行该类型传送的权限。
      */
+    @SuppressWarnings("unused")
     private static boolean hasPermission(ServerPlayerEntity player, String type) {
         // TODO: 后续实现权限管理
         return true;
@@ -95,8 +115,15 @@ public class TeleportRequestHandler {
             case "spawn" -> {
                 // 传送到世界出生点（BlockPos 需要添加 0.5 偏移，保持玩家当前朝向）
                 ServerWorld overworld = server.getOverworld();
-                BlockPos spawnPos = overworld.getSpawnPoint().getPos();
-                yield teleportTo(player, World.OVERWORLD, spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, yaw, pitch) ?
+                if (overworld == null) {
+                    yield TeleportResult.fail("Overworld not available");
+                }
+                // 使用 MinecraftServer.getSpawnPoint() 获取世界的实际出生点坐标
+                BlockPos spawnPos = server.getSpawnPoint().getPos();
+                double targetX = spawnPos.getX() + 0.5;
+                double targetY = spawnPos.getY();
+                double targetZ = spawnPos.getZ() + 0.5;
+                yield teleportTo(player, World.OVERWORLD, targetX, targetY, targetZ, yaw, pitch) ?
                         TeleportResult.ok() : TeleportResult.fail("Teleport failed");
             }
             case "respawn" -> {
@@ -135,6 +162,7 @@ public class TeleportRequestHandler {
         };
     }
 
+    @SuppressWarnings("ConstantConditions")
     private static boolean teleportTo(ServerPlayerEntity player, RegistryKey<World> dimension, double x, double y, double z, float yaw, float pitch) {
         try {
             MinecraftServer server = player.getEntityWorld().getServer();

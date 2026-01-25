@@ -57,6 +57,8 @@ Minecraft 源码已移动到 `Fabric模组开发规范` skill 目录下：
 - **已完成**：存档/服务器隔离存储（不同存档和服务器数据分离管理）
 - **已完成**：朝向保存与恢复（添加/更新时保存 yaw/pitch，传送时应用）
 - **已完成**：特殊目标使用 . 前缀（.death/.respawn/.spawn），避免与用户 spot 名称冲突
+- **已完成**：使用正确的世界出生点获取方式（`server.getSpawnPoint()`）
+- **已完成**：服务端安全优化（传送冷却时间、配置文件）
 
 ## 网络架构
 
@@ -126,3 +128,66 @@ String worldDir = worldPath.getFileName().toString();
 | `/spot tp .death` | 传送到死亡点 |
 | `/spot tp death` | 传送到用户 spot "death" |
 | `/spot add .home` | 拒绝（提示不能以 '.' 开头） |
+
+## 世界出生点获取实现
+
+**问题**：使用 `getSpawnPoint().getPos()` 可能返回默认位置 (0, 64, 0)，而不是世界创建时确定的实际出生点。
+
+**解决方案**：使用 `MinecraftServer.getSpawnPoint()` 获取正确的出生点坐标：
+
+```java
+// 单人模式和服务端通用
+BlockPos spawnPos = server.getSpawnPoint().getPos();
+double targetX = spawnPos.getX() + 0.5;
+double targetY = spawnPos.getY();
+double targetZ = spawnPos.getZ() + 0.5;
+```
+
+**实现要点**：
+- `MinecraftServer.getSpawnPoint()` 返回 `WorldProperties.SpawnPoint`，包含实际的世界出生点坐标
+- 该方法在 `MinecraftServer` 类中是 public 的，可直接调用
+- 适用于单人模式（`IntegratedServer`）和多人模式（`DedicatedServer`）
+
+## 服务端安全优化
+
+### 传送冷却时间
+
+**问题**：玩家可能频繁发送传送请求，造成服务端压力或滥用。
+
+**解决方案**：使用 `CooldownManager` 跟踪每个玩家的最后传送时间：
+
+```java
+// 检查是否在冷却中
+if (CooldownManager.isInCooldown(player)) {
+    int remaining = CooldownManager.getRemainingCooldown(player);
+    // 返回冷却中消息
+}
+
+// 传送成功后更新冷却时间
+CooldownManager.updateLastTeleport(player);
+```
+
+**冷却时间配置**：通过 `config/spotteddog/spotteddog_config.json` 管理：
+```json
+{
+  "teleport_cooldown_seconds": 1,
+  "max_teleports_per_second": 10
+}
+```
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| `teleport_cooldown_seconds` | 1 | 玩家个人冷却时间（秒） |
+| `max_teleports_per_second` | 10 | 全局每秒最大传送请求数 |
+
+**配置管理**：
+- 配置文件路径：`config/spotteddog/spotteddog_config.json`
+- 首次使用自动创建默认值
+- 支持热重载（重新调用 `ConfigManager.loadOrCreate()`）
+
+### 配置管理类
+
+| 类 | 职责 |
+|---|------|
+| `ConfigManager` | 配置文件读写，默认值创建 |
+| `CooldownManager` | 玩家冷却时间跟踪 |

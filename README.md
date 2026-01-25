@@ -60,23 +60,31 @@
 ```
 src/
 ├── main/
-│   ├── java/io/github/stone_brick/spotteddog/
-│   │   └── Spotteddog.java          # 主模组入口
-│   └── resources/
-│       ├── fabric.mod.json
-│       └── spotteddog.mixins.json
+│   └── java/io/github/stone_brick/spotteddog/
+│       ├── Spotteddog.java              # 主模组入口
+│       ├── network/
+│       │   ├── TeleportType.java        # 传送类型枚举
+│       │   ├── c2s/                     # 客户端到服务端负载
+│       │   │   └── TeleportRequestC2SPayload.java
+│       │   └── s2c/                     # 服务端到客户端负载
+│       │       └── TeleportConfirmS2CPayload.java
+│       └── server/
+│           └── network/
+│               └── TeleportRequestHandler.java  # 服务端传送请求处理
 └── client/
     └── java/io/github/stone_brick/spotteddog/client/
-        ├── SpotteddogClient.java    # 客户端入口
+        ├── SpotteddogClient.java        # 客户端入口
         ├── command/
-        │   ├── SpotCommand.java     # 命令实现
-        │   ├── TeleportHandler.java # 传送处理
-        │   ├── TeleportStrategy.java
+        │   ├── SpotCommand.java         # 命令实现
+        │   ├── TeleportHandler.java     # 传送处理入口
+        │   ├── TeleportStrategy.java    # 传送策略接口
         │   ├── SingleplayerTeleportStrategy.java
         │   └── MultiplayerTeleportStrategy.java
-        └── data/
-            ├── PlayerDataManager.java # 数据管理
-            └── Spot.java              # 标记点数据模型
+        ├── data/
+        │   ├── PlayerDataManager.java   # 数据管理
+        │   └── Spot.java                # 标记点数据模型
+        └── network/
+            └── TeleportConfirmHandler.java  # 客户端传送确认处理
 ```
 
 ## 技术栈

@@ -76,8 +76,10 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
             return;
         }
 
+        // 使用 IntegratedServer.getSpawnPoint() 获取实际出生点坐标
+        BlockPos spawnPos = server.getSpawnPoint().getPos();
         // 传送到主世界出生点（方块坐标需要添加 0.5 偏移，保持玩家当前朝向）
-        serverPlayer.teleport(server.getOverworld(), 0.5, 64.0, 0.5,
+        serverPlayer.teleport(server.getOverworld(), spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5,
                 EnumSet.noneOf(PositionFlag.class), player.getYaw(), player.getPitch(), false);
     }
 
