@@ -59,6 +59,7 @@ Minecraft 源码已移动到 `Fabric模组开发规范` skill 目录下：
 - **已完成**：特殊目标使用 . 前缀（.death/.respawn/.spawn），避免与用户 spot 名称冲突
 - **已完成**：使用正确的世界出生点获取方式（`server.getSpawnPoint()`）
 - **已完成**：服务端安全优化（传送冷却时间、配置文件）
+- **已完成**：公开 Spot 功能（多人模式下可将 Spot 公开给其他玩家）
 
 ## 网络架构
 
@@ -190,4 +191,97 @@ CooldownManager.updateLastTeleport(player);
 | 类 | 职责 |
 |---|------|
 | `ConfigManager` | 配置文件读写，默认值创建 |
-| `CooldownManager` | 玩家冷却时间跟踪 |
+| `CooldownManager` | 玩家冷却时间跟踪，全局速率限制 |
+
+## 单人模式消息优化
+
+**问题**：单人模式传送后没有成功提示消息。
+
+**解决方案**：在 `SingleplayerTeleportStrategy` 各传送方法中添加成功消息：
+
+```java
+// 传送成功后显示消息
+player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 已传送到 xxx"), false);
+```
+
+**消息列表**：
+| 类型 | 消息 |
+|------|------|
+| spot | "[SpottedDog] 已传送到标记点: xxx" |
+| spawn | "[SpottedDog] 已传送到出生点" |
+| death | "[SpottedDog] 已传送到死亡点" |
+| respawn | "[SpottedDog] 已传送到重生点" |
+
+## 版本历史
+
+| 版本 | 变更 |
+|------|------|
+| 4.0-SNAPSHOT | 世界出生点修复、服务端安全优化、单人模式消息优化、公开 Spot 功能 |
+| 3.2 | 特殊目标 . 前缀实现 |
+| 3.1 | 朝向保存与恢复 |
+| 3.0 | 存档/服务器隔离存储 |
+
+## 公开 Spot 功能
+
+**功能概述**：在多人模式下，玩家可以将自己的 Spot 公开给其他玩家，其他玩家可以直接传送到公开的 Spot。
+
+### 命名规则
+
+公开 Spot 使用 `-` 前缀，格式为：`-Spot名-玩家名`
+- 示例：`-home-stone_brick`
+
+**规则**：
+- 玩家本地 Spot 不能以 `-` 开头（与特殊目标一致）
+- 不允许重复的 Spot 名称（同一世界内）
+- 公开 Spot 仅在多人模式下可用
+
+### 命令列表
+
+| 命令 | 功能 |
+|------|------|
+| `/spot public <名称>` | 公开当前世界的指定 Spot |
+| `/spot unpublic <名称>` | 取消公开指定的 Spot |
+| `/spot public list` | 列出当前世界所有公开的 Spot |
+| `/spot tp -Spot名-玩家名` | 传送到其他玩家公开的 Spot |
+
+### 数据存储
+
+**服务端配置文件**：`config/spotteddog/public_spots.json`
+
+```json
+[
+  {
+    "id": "uuid",
+    "owner_name": "玩家名",
+    "owner_uuid": "玩家UUID",
+    "display_name": "Spot名称",
+    "x": 0.0,
+    "y": 64.0,
+    "z": 0.0,
+    "yaw": 0.0,
+    "pitch": 0.0,
+    "dimension": "minecraft:overworld",
+    "world": "Server",
+    "world_identifier": "multiplayer:服务器地址",
+    "created_at": 1234567890
+  }
+]
+```
+
+### 网络通信
+
+| Payload | 方向 | 用途 |
+|---------|------|------|
+| `PublicSpotActionC2SPayload` | C2S | 公开/取消公开 Spot 请求 |
+| `PublicSpotListC2SPayload` | C2S | 获取公开 Spot 列表请求 |
+| `PublicSpotListS2CPayload` | S2C | 返回公开 Spot 列表 |
+| `PublicSpotTeleportC2SPayload` | C2S | 传送到公开 Spot 请求 |
+
+### 核心类
+
+| 类 | 职责 |
+|---|------|
+| `PublicSpot` | 公开 Spot 数据模型 |
+| `PublicSpotManager` | 服务端公开 Spot 存储管理 |
+| `PublicSpotHandler` | 服务端网络请求处理 |
+| `PublicSpotListHandler` | 客户端公开 Spot 列表处理 |

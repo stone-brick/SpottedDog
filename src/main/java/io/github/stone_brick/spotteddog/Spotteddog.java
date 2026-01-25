@@ -1,5 +1,6 @@
 package io.github.stone_brick.spotteddog;
 
+import io.github.stone_brick.spotteddog.server.network.PublicSpotHandler;
 import io.github.stone_brick.spotteddog.server.network.TeleportRequestHandler;
 import net.fabricmc.api.ModInitializer;
 
@@ -13,5 +14,6 @@ public class Spotteddog implements ModInitializer {
     public void onInitialize() {
         // 注册服务端网络处理器
         TeleportRequestHandler.register();
+        PublicSpotHandler.register();
     }
 }

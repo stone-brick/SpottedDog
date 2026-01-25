@@ -9,6 +9,8 @@
 - **智能策略模式**：根据游戏模式（单人/多人）自动选择最佳传送方式
 - **自动死亡记录**：自动记录玩家死亡位置
 - **朝向保存与恢复**：传送时保持玩家当前朝向（特殊目标）或恢复保存的朝向（自定义标记点）
+- **服务端安全优化**：传送冷却时间、全局速率限制
+- **公开 Spot**（多人模式）：将你的 Spot 公开给其他玩家，其他玩家可直接传送到公开 Spot
 
 ## 安装方法
 
@@ -26,15 +28,20 @@
 | `/spot update <名称>` | 更新标记点到当前位置 |
 | `/spot rename <旧名> <新名>` | 重命名标记点 |
 | `/spot teleport <名称>` | 传送到标记点或特殊目标 |
+| `/spot tp <名称>` | 传送到标记点（简写） |
 | `/spot list` | 列出所有保存的标记点 |
+| `/spot public <名称>` | 公开 Spot（仅多人模式） |
+| `/spot unpublic <名称>` | 取消公开 Spot（仅多人模式） |
+| `/spot public list` | 列出公开的 Spot（仅多人模式） |
 
 ### 特殊传送目标
 
 `/spot teleport` 命令支持以下特殊目标：
 
-- `death` - 传送到死亡点
-- `respawn` - 传送到重生点
-- `spawn` - 传送到世界出生点
+- `.death` - 传送到死亡点
+- `.respawn` - 传送到重生点
+- `.spawn` - 传送到世界出生点
+- `-玩家名:Spot名` - 传送到公开 Spot（仅多人模式）
 
 ## 构建方法
 
@@ -65,12 +72,23 @@ src/
 │       ├── network/
 │       │   ├── TeleportType.java        # 传送类型枚举
 │       │   ├── c2s/                     # 客户端到服务端负载
-│       │   │   └── TeleportRequestC2SPayload.java
+│       │   │   ├── TeleportRequestC2SPayload.java
+│       │   │   ├── PublicSpotActionC2SPayload.java
+│       │   │   ├── PublicSpotListC2SPayload.java
+│       │   │   └── PublicSpotTeleportC2SPayload.java
 │       │   └── s2c/                     # 服务端到客户端负载
-│       │       └── TeleportConfirmS2CPayload.java
+│       │       ├── TeleportConfirmS2CPayload.java
+│       │       └── PublicSpotListS2CPayload.java
 │       └── server/
+│           ├── config/
+│           │   ├── ConfigManager.java   # 配置文件管理
+│           │   └── CooldownManager.java # 冷却时间管理
+│           ├── data/
+│           │   ├── PublicSpot.java      # 公开 Spot 数据模型
+│           │   └── PublicSpotManager.java # 公开 Spot 存储管理
 │           └── network/
-│               └── TeleportRequestHandler.java  # 服务端传送请求处理
+│               ├── TeleportRequestHandler.java  # 服务端传送请求处理
+│               └── PublicSpotHandler.java       # 公开 Spot 请求处理
 └── client/
     └── java/io/github/stone_brick/spotteddog/client/
         ├── SpotteddogClient.java        # 客户端入口
@@ -84,7 +102,8 @@ src/
         │   ├── PlayerDataManager.java   # 数据管理
         │   └── Spot.java                # 标记点数据模型
         └── network/
-            └── TeleportConfirmHandler.java  # 客户端传送确认处理
+            ├── TeleportConfirmHandler.java   # 客户端传送确认处理
+            └── PublicSpotListHandler.java    # 公开 Spot 列表处理
 ```
 
 ## 技术栈
@@ -97,7 +116,24 @@ src/
 
 ## 配置
 
+### 标记点数据
 标记点数据保存在 `config/spotteddog/spots.json` 文件中。
+
+### 服务端配置
+服务端配置文件：`config/spotteddog/spotteddog_config.json`
+```json
+{
+  "teleport_cooldown_seconds": 1,
+  "max_teleports_per_second": 10
+}
+```
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| `teleport_cooldown_seconds` | 1 | 玩家个人冷却时间（秒） |
+| `max_teleports_per_second` | 10 | 全局每秒最大传送请求数 |
+
+### 公开 Spot 数据
+公开 Spot 数据保存在服务端 `config/spotteddog/public_spots.json` 文件中。
 
 ## 许可证
 

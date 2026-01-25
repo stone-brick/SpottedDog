@@ -8,6 +8,7 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import io.github.stone_brick.spotteddog.client.data.PlayerDataManager;
 import io.github.stone_brick.spotteddog.client.data.Spot;
+import io.github.stone_brick.spotteddog.client.network.PublicSpotListHandler;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -30,7 +31,7 @@ public class SpotCommand {
     private static final PlayerDataManager dataManager = PlayerDataManager.getInstance();
     private static final String[] SPECIAL_TARGETS = {"death", "respawn", "spawn"};
 
-    // 自动补全提供者：包含用户保存的 spot 名称和特殊目标（带 . 前缀）
+    // 自动补全提供者：包含用户保存的 spot 名称、公开 Spot 和特殊目标
     private static final SuggestionProvider<FabricClientCommandSource> TELEPORT_SUGGESTIONS = (context, builder) -> {
         String remaining = builder.getRemaining().toLowerCase();
 
@@ -51,8 +52,39 @@ public class SpotCommand {
             }
         }
 
+        // 添加公开 Spot（带 - 前缀），同时请求最新列表
+        if (remaining.startsWith("-")) {
+            // 自动请求公开 Spot 列表
+            requestPublicSpotsIfNeeded();
+
+            List<PublicSpotListHandler.PublicSpotInfo> publicSpots = PublicSpotListHandler.getPublicSpots();
+            for (PublicSpotListHandler.PublicSpotInfo spot : publicSpots) {
+                String fullName = spot.getFullName();
+                if (fullName.toLowerCase().startsWith(remaining)) {
+                    builder.suggest(fullName);
+                }
+            }
+        }
+
         return builder.buildFuture();
     };
+
+    // 记录是否已请求过公开 Spot 列表（避免重复请求）
+    private static long lastPublicSpotRequestTime = 0;
+    private static final long REQUEST_COOLDOWN_MS = 5000; // 5秒冷却
+
+    private static void requestPublicSpotsIfNeeded() {
+        long now = System.currentTimeMillis();
+        if (now - lastPublicSpotRequestTime > REQUEST_COOLDOWN_MS) {
+            lastPublicSpotRequestTime = now;
+            if (MinecraftClient.getInstance().isInSingleplayer()) {
+                return; // 单人模式不需要
+            }
+            if (TeleportHandler.getStrategy() instanceof MultiplayerTeleportStrategy strategy) {
+                strategy.requestPublicSpotList(null);
+            }
+        }
+    }
 
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
         // /spot add <name>
@@ -108,6 +140,22 @@ public class SpotCommand {
         dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
                 .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("debug")
                         .executes(context -> debugUserData())));
+
+        // /spot public <name> - 公开 Spot（仅多人模式）
+        dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
+                .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("public")
+                        .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("list")
+                                .executes(context -> listPublicSpots()))
+                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("name", StringArgumentType.word())
+                                .suggests(spotNameSuggestions())
+                                .executes(context -> publishSpot(getString(context, "name"))))));
+
+        // /spot unpublic <name> - 取消公开 Spot（仅多人模式）
+        dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
+                .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("unpublic")
+                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("name", StringArgumentType.word())
+                                .suggests(myPublicSpotSuggestions())
+                                .executes(context -> unpublishSpot(getString(context, "name"))))));
     }
 
     // 为 spot 名称提供自动补全
@@ -118,6 +166,23 @@ public class SpotCommand {
                 String name = spot.getName();
                 if (name.toLowerCase().startsWith(builder.getRemaining().toLowerCase())) {
                     builder.suggest(name);
+                }
+            }
+            return builder.buildFuture();
+        };
+    }
+
+    // 为自己公开的 spot 名称提供自动补全（不带玩家名前缀）
+    private static SuggestionProvider<FabricClientCommandSource> myPublicSpotSuggestions() {
+        return (context, builder) -> {
+            String playerName = getPlayer().getName().getString();
+            List<PublicSpotListHandler.PublicSpotInfo> spots = PublicSpotListHandler.getPublicSpots();
+            for (PublicSpotListHandler.PublicSpotInfo spot : spots) {
+                if (spot.getOwnerName().equals(playerName)) {
+                    String name = spot.getDisplayName();
+                    if (name.toLowerCase().startsWith(builder.getRemaining().toLowerCase())) {
+                        builder.suggest(name);
+                    }
                 }
             }
             return builder.buildFuture();
@@ -237,22 +302,29 @@ public class SpotCommand {
         switch (lowerTarget) {
             case ".death" -> {
                 TeleportHandler.teleportToDeath(player);
-                sendFeedback("[SpottedDog] 已传送到死亡点");
                 return Command.SINGLE_SUCCESS;
             }
             case ".respawn" -> {
-                if (TeleportHandler.teleportToRespawn(player)) {
-                    sendFeedback("[SpottedDog] 已传送到重生点");
-                } else {
-                    sendFeedback("[SpottedDog] 未设置重生点");
-                }
+                TeleportHandler.teleportToRespawn(player);
                 return Command.SINGLE_SUCCESS;
             }
             case ".spawn" -> {
                 TeleportHandler.teleportToSpawn(player);
-                sendFeedback("[SpottedDog] 已传送到世界出生点");
                 return Command.SINGLE_SUCCESS;
             }
+        }
+
+        // 处理公开 Spot（带 - 前缀）
+        if (target.startsWith("-")) {
+            if (MinecraftClient.getInstance().isInSingleplayer()) {
+                sendFeedback("[SpottedDog] 公开 Spot 仅在多人模式下可用");
+                return Command.SINGLE_SUCCESS;
+            }
+
+            if (TeleportHandler.getStrategy() instanceof MultiplayerTeleportStrategy strategy) {
+                strategy.teleportToPublicSpot(player, target);
+            }
+            return Command.SINGLE_SUCCESS;
         }
 
         // 查找用户保存的 spot
@@ -260,7 +332,6 @@ public class SpotCommand {
         Optional<Spot> spot = dataManager.getSpot(target, worldId);
         if (spot.isPresent()) {
             TeleportHandler.teleportToSpot(player, spot.get());
-            sendFeedback("[SpottedDog] 已传送到: " + target);
         } else {
             sendFeedback("[SpottedDog] 未找到标记点: " + target);
         }
@@ -322,6 +393,79 @@ public class SpotCommand {
                     sendFeedback("getPlayerList: null");
                 }
             }
+        }
+
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int publishSpot(String name) {
+        ClientPlayerEntity player = getPlayer();
+        if (player == null) return 0;
+
+        // 检查是否在单人模式
+        if (MinecraftClient.getInstance().isInSingleplayer()) {
+            sendFeedback("[SpottedDog] 此命令仅在多人模式下可用");
+            return Command.SINGLE_SUCCESS;
+        }
+
+        // 检查 Spot 是否存在
+        String worldId = getWorldIdentifier();
+        Optional<Spot> spot = dataManager.getSpot(name, worldId);
+        if (spot.isEmpty()) {
+            sendFeedback("[SpottedDog] 未找到标记点: " + name);
+            return Command.SINGLE_SUCCESS;
+        }
+
+        // 调用多人模式策略公开 Spot
+        TeleportHandler.getStrategy();
+        if (TeleportHandler.getStrategy() instanceof MultiplayerTeleportStrategy strategy) {
+            strategy.publishSpot(player, spot.get());
+        }
+
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int unpublishSpot(String name) {
+        ClientPlayerEntity player = getPlayer();
+        if (player == null) return 0;
+
+        // 检查是否在单人模式
+        if (MinecraftClient.getInstance().isInSingleplayer()) {
+            sendFeedback("[SpottedDog] 此命令仅在多人模式下可用");
+            return Command.SINGLE_SUCCESS;
+        }
+
+        // 调用多人模式策略取消公开 Spot
+        if (TeleportHandler.getStrategy() instanceof MultiplayerTeleportStrategy strategy) {
+            strategy.unpublishSpot(player, name);
+        }
+
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int listPublicSpots() {
+        ClientPlayerEntity player = getPlayer();
+        if (player == null) return 0;
+
+        // 检查是否在单人模式
+        if (MinecraftClient.getInstance().isInSingleplayer()) {
+            sendFeedback("[SpottedDog] 此命令仅在多人模式下可用");
+            return Command.SINGLE_SUCCESS;
+        }
+
+        // 请求公开 Spot 列表
+        if (TeleportHandler.getStrategy() instanceof MultiplayerTeleportStrategy strategy) {
+            strategy.requestPublicSpotListWithCallback(player, spots -> {
+                if (spots.isEmpty()) {
+                    player.sendMessage(Text.literal("[SpottedDog] 当前没有公开的 Spot"), false);
+                } else {
+                    player.sendMessage(Text.literal("[SpottedDog] 公开 Spot 列表:(" + spots.size() + " 个)"), false);
+                    for (PublicSpotListHandler.PublicSpotInfo spot : spots) {
+                        String fullName = spot.getFullName();
+                        player.sendMessage(Text.literal("  - " + fullName + " (" + spot.getDimension() + ")"), false);
+                    }
+                }
+            });
         }
 
         return Command.SINGLE_SUCCESS;

@@ -33,15 +33,10 @@ public class TeleportConfirmHandler {
             if (player == null) return;
 
             if (payload.success()) {
-                String message = switch (payload.type()) {
-                    case "spot" -> "[SpottedDog] 已传送到标记点: " + payload.targetName();
-                    case "death" -> "[SpottedDog] 已传送到死亡点";
-                    case "respawn" -> "[SpottedDog] 已传送到重生点";
-                    case "spawn" -> "[SpottedDog] 已传送到出生点";
-                    default -> "[SpottedDog] 已传送";
-                };
-                player.sendMessage(net.minecraft.text.Text.literal(message), false);
+                // 传送成功不显示消息
+                return;
             } else {
+                // 失败时显示错误消息
                 String message = "[SpottedDog] 传送失败: " + payload.message();
                 player.sendMessage(net.minecraft.text.Text.literal(message), false);
             }

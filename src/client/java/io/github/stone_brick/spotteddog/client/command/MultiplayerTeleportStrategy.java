@@ -1,11 +1,19 @@
 package io.github.stone_brick.spotteddog.client.command;
 
 import io.github.stone_brick.spotteddog.client.data.Spot;
+import io.github.stone_brick.spotteddog.client.network.PublicSpotListHandler;
+import io.github.stone_brick.spotteddog.network.c2s.PublicSpotActionC2SPayload;
+import io.github.stone_brick.spotteddog.network.c2s.PublicSpotTeleportC2SPayload;
 import io.github.stone_brick.spotteddog.network.c2s.TeleportRequestC2SPayload;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
+
+import java.util.List;
+import java.util.UUID;
+import net.minecraft.util.WorldSavePath;
 
 /**
  * 多人模式传送策略实现。
@@ -44,9 +52,68 @@ public class MultiplayerTeleportStrategy implements TeleportStrategy {
     }
 
     /**
+     * 公开 Spot。
+     */
+    public void publishSpot(ClientPlayerEntity player, Spot spot) {
+        String worldIdentifier = getWorldIdentifier();
+        ClientPlayNetworking.send(PublicSpotActionC2SPayload.publish(
+                spot.getName(),
+                spot.getX(), spot.getY(), spot.getZ(),
+                spot.getYaw(), spot.getPitch(),
+                spot.getDimension(), spot.getWorld(),
+                worldIdentifier));
+    }
+
+    /**
+     * 取消公开 Spot。
+     */
+    public void unpublishSpot(ClientPlayerEntity player, String spotName) {
+        String worldIdentifier = getWorldIdentifier();
+        ClientPlayNetworking.send(PublicSpotActionC2SPayload.unpublish(spotName, worldIdentifier));
+    }
+
+    /**
+     * 请求公开 Spot 列表。
+     */
+    public void requestPublicSpotList(ClientPlayerEntity player) {
+        String worldIdentifier = getWorldIdentifier();
+        PublicSpotListHandler.requestPublicSpots(worldIdentifier);
+    }
+
+    /**
+     * 请求公开 Spot 列表（异步回调）。
+     */
+    public void requestPublicSpotListWithCallback(ClientPlayerEntity player,
+                                                   java.util.function.Consumer<List<PublicSpotListHandler.PublicSpotInfo>> callback) {
+        String worldIdentifier = getWorldIdentifier();
+        PublicSpotListHandler.requestPublicSpotsWithCallback(worldIdentifier, callback);
+    }
+
+    /**
+     * 传送到公开 Spot。
+     */
+    public void teleportToPublicSpot(ClientPlayerEntity player, String fullName) {
+        String worldIdentifier = getWorldIdentifier();
+        ClientPlayNetworking.send(PublicSpotTeleportC2SPayload.of(fullName, worldIdentifier));
+    }
+
+    /**
      * 向服务端发送传送请求。
      */
     private void sendTeleportRequest(ClientPlayerEntity player, TeleportRequestC2SPayload payload) {
         ClientPlayNetworking.send(payload);
+    }
+
+    /**
+     * 获取世界标识符。
+     */
+    private String getWorldIdentifier() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.getServer() != null) {
+            // 单人模式
+            return "singleplayer:" + client.getServer().getSavePath(WorldSavePath.ROOT).getParent().getFileName().toString();
+        }
+        // 多人模式
+        return "multiplayer:" + (client.getCurrentServerEntry() != null ? client.getCurrentServerEntry().address : "unknown");
     }
 }

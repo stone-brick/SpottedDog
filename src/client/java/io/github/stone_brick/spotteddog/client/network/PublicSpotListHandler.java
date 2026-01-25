@@ -1,0 +1,133 @@
+package io.github.stone_brick.spotteddog.client.network;
+
+import io.github.stone_brick.spotteddog.network.c2s.PublicSpotListC2SPayload;
+import io.github.stone_brick.spotteddog.network.s2c.PublicSpotListS2CPayload;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * 客户端公开 Spot 列表处理器。
+ */
+@Environment(EnvType.CLIENT)
+public class PublicSpotListHandler {
+
+    /**
+     * 公开 Spot 信息。
+     */
+    public static class PublicSpotInfo {
+        private final String ownerName;
+        private final String displayName;
+        private final double x;
+        private final double y;
+        private final double z;
+        private final String dimension;
+        private final String world;
+
+        public PublicSpotInfo(String ownerName, String displayName, double x, double y, double z,
+                              String dimension, String world) {
+            this.ownerName = ownerName;
+            this.displayName = displayName;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.dimension = dimension;
+            this.world = world;
+        }
+
+        public String getFullName() {
+            return "-" + displayName + "-" + ownerName;
+        }
+
+        public String getOwnerName() { return ownerName; }
+        public String getDisplayName() { return displayName; }
+        public double getX() { return x; }
+        public double getY() { return y; }
+        public double getZ() { return z; }
+        public String getDimension() { return dimension; }
+        public String getWorld() { return world; }
+    }
+
+    private static final List<PublicSpotInfo> publicSpots = new ArrayList<>();
+    private static java.util.function.Consumer<List<PublicSpotInfo>> listCallback;
+
+    /**
+     * 注册处理器。
+     */
+    public static void register() {
+        // 动态注册 S2C Payload 类型（单人模式需避免重复注册）
+        try {
+            PayloadTypeRegistry.playS2C().register(
+                    PublicSpotListS2CPayload.ID,
+                    PublicSpotListS2CPayload.CODEC
+            );
+        } catch (IllegalArgumentException e) {
+            // 已注册过，忽略
+        }
+
+        // 注册接收处理器
+        ClientPlayNetworking.registerGlobalReceiver(PublicSpotListS2CPayload.ID, (payload, context) -> {
+            var player = context.player();
+            if (player == null) return;
+
+            // 更新缓存
+            publicSpots.clear();
+            for (PublicSpotListS2CPayload.PublicSpotInfo spot : payload.spots()) {
+                publicSpots.add(new PublicSpotInfo(
+                        spot.ownerName(),
+                        spot.displayName(),
+                        spot.x(), spot.y(), spot.z(),
+                        spot.dimension(),
+                        spot.world()
+                ));
+            }
+
+            // 回调
+            if (listCallback != null) {
+                listCallback.accept(new ArrayList<>(publicSpots));
+                listCallback = null;
+            }
+
+            // 显示消息
+            if (publicSpots.isEmpty()) {
+                player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 当前没有公开的 Spot"), false);
+            } else {
+                player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 公开 Spot 列表已更新（" + publicSpots.size() + " 个）"), false);
+            }
+        });
+    }
+
+    /**
+     * 请求获取公开 Spot 列表。
+     */
+    public static void requestPublicSpots(String worldIdentifier) {
+        ClientPlayNetworking.send(new PublicSpotListC2SPayload(worldIdentifier));
+    }
+
+    /**
+     * 请求获取公开 Spot 列表（异步回调）。
+     */
+    public static void requestPublicSpotsWithCallback(String worldIdentifier,
+                                                       java.util.function.Consumer<List<PublicSpotInfo>> callback) {
+        listCallback = callback;
+        requestPublicSpots(worldIdentifier);
+    }
+
+    /**
+     * 获取缓存的公开 Spot 列表。
+     */
+    public static List<PublicSpotInfo> getPublicSpots() {
+        return new ArrayList<>(publicSpots);
+    }
+
+    /**
+     * 清除缓存。
+     */
+    public static void clearCache() {
+        publicSpots.clear();
+    }
+}
