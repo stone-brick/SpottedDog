@@ -120,9 +120,13 @@ src/
 ## 配置
 
 ### 标记点数据
-标记点数据保存在 `config/spotteddog/spots.json` 文件中。
+
+标记点数据保存在 `config/spotteddog/` 目录下：
+- `spots_singleplayer.json` - 单人模式存档的 Spot
+- `spots_multiplayer.json` - 多人模式服务器的 Spot
 
 ### 服务端配置
+
 服务端配置文件：`config/spotteddog/spotteddog_config.json`
 ```json
 {
@@ -136,7 +140,19 @@ src/
 | `max_teleports_per_second` | 10 | 全局每秒最大传送请求数 |
 
 ### 公开 Spot 数据
+
 公开 Spot 数据保存在服务端 `config/spotteddog/public_spots.json` 文件中。
+
+## 版本历史
+
+| 版本 | 变更 |
+|------|------|
+| 4.2-SNAPSHOT | 数据结构重构（按存档/服务器分组存储）、移除 isPublic 字段 |
+| 4.1-SNAPSHOT | 公开 Spot 功能、移除成功提示消息 |
+| 4.0-SNAPSHOT | 世界出生点修复、服务端安全优化、单人模式消息优化 |
+| 3.2 | 特殊目标 . 前缀实现 |
+| 3.1 | 朝向保存与恢复 |
+| 3.0 | 存档/服务器隔离存储 |
 
 ## 许可证
 
