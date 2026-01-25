@@ -27,6 +27,7 @@ import java.util.Optional;
  * 处理公开/取消公开/列表查询/传送请求。
  */
 public class PublicSpotHandler {
+    private static final int MAX_NAME_LENGTH = 64; // Spot 名称最大长度
 
     static {
         // 注册 C2S Payload 类型
@@ -62,6 +63,13 @@ public class PublicSpotHandler {
 
             switch (payload.action()) {
                 case "publish" -> {
+                    // 验证名称长度
+                    if (payload.spotName().length() > MAX_NAME_LENGTH) {
+                        ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
+                                "public", payload.spotName(), "Spot 名称超过最大长度"));
+                        return;
+                    }
+
                     // 公开 Spot
                     boolean success = PublicSpotManager.getInstance().publishSpot(
                             playerName, playerUuid, payload.spotName(),
@@ -78,6 +86,13 @@ public class PublicSpotHandler {
                     }
                 }
                 case "unpublish" -> {
+                    // 验证名称长度
+                    if (payload.spotName().length() > MAX_NAME_LENGTH) {
+                        ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
+                                "unpublic", payload.spotName(), "Spot 名称超过最大长度"));
+                        return;
+                    }
+
                     // 取消公开 Spot
                     boolean success = PublicSpotManager.getInstance().unpublishSpot(
                             playerName, payload.spotName());
@@ -140,6 +155,13 @@ public class PublicSpotHandler {
             if (name == null) {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
                         "public_tp", payload.fullName(), "无效的公开 Spot 名称格式"));
+                return;
+            }
+
+            // 验证 spotName 长度（玩家名称是附加信息，不计入长度限制）
+            if (name.spotName().length() > MAX_NAME_LENGTH) {
+                ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
+                        "public_tp", payload.fullName(), "Spot 名称超过最大长度"));
                 return;
             }
 

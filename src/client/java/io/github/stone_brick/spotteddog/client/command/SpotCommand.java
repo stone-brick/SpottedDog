@@ -30,6 +30,7 @@ import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 public class SpotCommand {
     private static final PlayerDataManager dataManager = PlayerDataManager.getInstance();
     private static final String[] SPECIAL_TARGETS = {"death", "respawn", "spawn"};
+    private static final int MAX_NAME_LENGTH = 64; // Spot 名称最大长度
 
     // 自动补全提供者：包含用户保存的 spot 名称、公开 Spot 和特殊目标
     private static final SuggestionProvider<FabricClientCommandSource> TELEPORT_SUGGESTIONS = (context, builder) -> {
@@ -239,6 +240,12 @@ public class SpotCommand {
             return Command.SINGLE_SUCCESS;
         }
 
+        // 检查名称长度
+        if (name.length() > MAX_NAME_LENGTH) {
+            sendFeedback("[SpottedDog] 标记点名称不能超过 " + MAX_NAME_LENGTH + " 个字符");
+            return Command.SINGLE_SUCCESS;
+        }
+
         String worldId = getWorldIdentifier();
         if (dataManager.addSpot(name, player.getX(), player.getY(), player.getZ(),
                 player.getYaw(), player.getPitch(), getCurrentDimension(), getCurrentWorldName(), worldId)) {
@@ -277,6 +284,12 @@ public class SpotCommand {
         // 检查新名称是否以 . 开头
         if (newName.startsWith(".")) {
             sendFeedback("[SpottedDog] 标记点名称不能以 '.' 开头");
+            return Command.SINGLE_SUCCESS;
+        }
+
+        // 检查名称长度
+        if (newName.length() > MAX_NAME_LENGTH) {
+            sendFeedback("[SpottedDog] 标记点名称不能超过 " + MAX_NAME_LENGTH + " 个字符");
             return Command.SINGLE_SUCCESS;
         }
 

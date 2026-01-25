@@ -24,6 +24,7 @@ import java.util.EnumSet;
  * 客户端发送请求类型（death/respawn/spawn/spot），服务端自行获取位置信息并执行传送。
  */
 public class TeleportRequestHandler {
+    private static final int MAX_NAME_LENGTH = 64; // Spot 名称最大长度
 
     static {
         // 注册 C2S 负载类型（服务端接收客户端请求）
@@ -58,6 +59,13 @@ public class TeleportRequestHandler {
             if (!CooldownManager.tryIncrementGlobalCount()) {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
                         type, targetName, "服务器繁忙，请稍后再试"));
+                return;
+            }
+
+            // 验证名称长度（仅 spot 类型）
+            if ("spot".equals(type) && targetName != null && targetName.length() > MAX_NAME_LENGTH) {
+                ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
+                        type, targetName, "Spot 名称超过最大长度"));
                 return;
             }
 
