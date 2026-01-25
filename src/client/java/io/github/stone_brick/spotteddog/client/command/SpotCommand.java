@@ -48,7 +48,7 @@ public class SpotCommand {
         for (Spot spot : spots) {
             String name = spot.getName();
             if (name.toLowerCase().startsWith(remaining)) {
-                builder.suggest(name);
+                builder.suggest("\"" + name + "\"");
             }
         }
 
@@ -61,7 +61,7 @@ public class SpotCommand {
             for (PublicSpotListHandler.PublicSpotInfo spot : publicSpots) {
                 String fullName = spot.getFullName();
                 if (fullName.toLowerCase().startsWith(remaining)) {
-                    builder.suggest(fullName);
+                    builder.suggest("\"" + fullName + "\"");
                 }
             }
         }
@@ -87,29 +87,29 @@ public class SpotCommand {
         // /spot add <name>
         dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
                 .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("add")
-                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("name", StringArgumentType.word())
+                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("name", StringArgumentType.string())
                                 .executes(context -> addSpot(getString(context, "name"))))));
 
         // /spot remove <name>
         dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
                 .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("remove")
-                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("name", StringArgumentType.word())
+                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("name", StringArgumentType.string())
                                 .suggests(spotNameSuggestions())
                                 .executes(context -> removeSpot(getString(context, "name"))))));
 
         // /spot update <name>
         dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
                 .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("update")
-                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("name", StringArgumentType.word())
+                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("name", StringArgumentType.string())
                                 .suggests(spotNameSuggestions())
                                 .executes(context -> updateSpot(getString(context, "name"))))));
 
         // /spot rename <oldName> <newName>
         dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
                 .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("rename")
-                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("oldName", StringArgumentType.word())
+                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("oldName", StringArgumentType.string())
                                 .suggests(spotNameSuggestions())
-                                .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("newName", StringArgumentType.word())
+                                .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("newName", StringArgumentType.string())
                                         .executes(context -> renameSpot(
                                                 getString(context, "oldName"),
                                                 getString(context, "newName")))))));
@@ -117,14 +117,14 @@ public class SpotCommand {
         // /spot teleport <target> - 支持 spot 名称和特殊目标 (death/respawn/spawn)
         dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
                 .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("teleport")
-                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("target", StringArgumentType.word())
+                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("target", StringArgumentType.string())
                                 .suggests(TELEPORT_SUGGESTIONS)
                                 .executes(context -> teleport(getString(context, "target"))))));
 
         // /spot tp <target> - teleport 的简写
         dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
                 .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("tp")
-                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("target", StringArgumentType.word())
+                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("target", StringArgumentType.string())
                                 .suggests(TELEPORT_SUGGESTIONS)
                                 .executes(context -> teleport(getString(context, "target"))))));
 
@@ -143,14 +143,14 @@ public class SpotCommand {
                 .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("public")
                         .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("list")
                                 .executes(context -> listPublicSpots()))
-                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("name", StringArgumentType.word())
+                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("name", StringArgumentType.string())
                                 .suggests(spotNameSuggestions())
                                 .executes(context -> publishSpot(getString(context, "name"))))));
 
         // /spot unpublic <name> - 取消公开 Spot（仅多人模式）
         dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
                 .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("unpublic")
-                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("name", StringArgumentType.word())
+                        .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("name", StringArgumentType.string())
                                 .suggests(myPublicSpotSuggestions())
                                 .executes(context -> unpublishSpot(getString(context, "name"))))));
     }
@@ -162,7 +162,7 @@ public class SpotCommand {
             for (Spot spot : spots) {
                 String name = spot.getName();
                 if (name.toLowerCase().startsWith(builder.getRemaining().toLowerCase())) {
-                    builder.suggest(name);
+                    builder.suggest("\"" + name + "\"");
                 }
             }
             return builder.buildFuture();
@@ -178,7 +178,7 @@ public class SpotCommand {
                 if (spot.getOwnerName().equals(playerName)) {
                     String name = spot.getDisplayName();
                     if (name.toLowerCase().startsWith(builder.getRemaining().toLowerCase())) {
-                        builder.suggest(name);
+                        builder.suggest("\"" + name + "\"");
                     }
                 }
             }
