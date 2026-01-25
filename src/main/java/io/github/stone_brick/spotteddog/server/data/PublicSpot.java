@@ -38,12 +38,6 @@ public class PublicSpot {
     @SerializedName("dimension")
     private String dimension;
 
-    @SerializedName("world")
-    private String world;
-
-    @SerializedName("world_identifier")
-    private String worldIdentifier;
-
     @SerializedName("created_at")
     private long createdAt;
 
@@ -51,8 +45,7 @@ public class PublicSpot {
     }
 
     public PublicSpot(String id, String ownerName, String ownerUuid, String displayName,
-                      double x, double y, double z, float yaw, float pitch,
-                      String dimension, String world, String worldIdentifier) {
+                      double x, double y, double z, float yaw, float pitch, String dimension) {
         this.id = id;
         this.ownerName = ownerName;
         this.ownerUuid = ownerUuid;
@@ -63,8 +56,6 @@ public class PublicSpot {
         this.yaw = yaw;
         this.pitch = pitch;
         this.dimension = dimension;
-        this.world = world;
-        this.worldIdentifier = worldIdentifier;
         this.createdAt = System.currentTimeMillis();
     }
 
@@ -106,12 +97,6 @@ public class PublicSpot {
 
     public String getDimension() { return dimension; }
     public void setDimension(String dimension) { this.dimension = dimension; }
-
-    public String getWorld() { return world; }
-    public void setWorld(String world) { this.world = world; }
-
-    public String getWorldIdentifier() { return worldIdentifier; }
-    public void setWorldIdentifier(String worldIdentifier) { this.worldIdentifier = worldIdentifier; }
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }

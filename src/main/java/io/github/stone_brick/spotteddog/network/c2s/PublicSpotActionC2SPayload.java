@@ -16,9 +16,7 @@ public record PublicSpotActionC2SPayload(
         double z,
         float yaw,
         float pitch,
-        String dimension,
-        String world,
-        String worldIdentifier
+        String dimension
 ) implements CustomPayload {
 
     public static final CustomPayload.Id<PublicSpotActionC2SPayload> ID =
@@ -35,8 +33,6 @@ public record PublicSpotActionC2SPayload(
                         buf.writeFloat(payload.yaw());
                         buf.writeFloat(payload.pitch());
                         buf.writeString(payload.dimension());
-                        buf.writeString(payload.world());
-                        buf.writeString(payload.worldIdentifier());
                     },
                     buf -> new PublicSpotActionC2SPayload(
                             buf.readString(),
@@ -46,8 +42,6 @@ public record PublicSpotActionC2SPayload(
                             buf.readDouble(),
                             buf.readFloat(),
                             buf.readFloat(),
-                            buf.readString(),
-                            buf.readString(),
                             buf.readString()
                     )
             );
@@ -61,15 +55,14 @@ public record PublicSpotActionC2SPayload(
      * 创建公开 Spot 请求。
      */
     public static PublicSpotActionC2SPayload publish(String spotName, double x, double y, double z,
-                                                      float yaw, float pitch, String dimension,
-                                                      String world, String worldIdentifier) {
-        return new PublicSpotActionC2SPayload("publish", spotName, x, y, z, yaw, pitch, dimension, world, worldIdentifier);
+                                                      float yaw, float pitch, String dimension) {
+        return new PublicSpotActionC2SPayload("publish", spotName, x, y, z, yaw, pitch, dimension);
     }
 
     /**
      * 创建取消公开 Spot 请求。
      */
-    public static PublicSpotActionC2SPayload unpublish(String spotName, String worldIdentifier) {
-        return new PublicSpotActionC2SPayload("unpublish", spotName, 0, 0, 0, 0, 0, "", "", worldIdentifier);
+    public static PublicSpotActionC2SPayload unpublish(String spotName) {
+        return new PublicSpotActionC2SPayload("unpublish", spotName, 0, 0, 0, 0, 0, "");
     }
 }

@@ -26,17 +26,15 @@ public class PublicSpotListHandler {
         private final double y;
         private final double z;
         private final String dimension;
-        private final String world;
 
         public PublicSpotInfo(String ownerName, String displayName, double x, double y, double z,
-                              String dimension, String world) {
+                              String dimension) {
             this.ownerName = ownerName;
             this.displayName = displayName;
             this.x = x;
             this.y = y;
             this.z = z;
             this.dimension = dimension;
-            this.world = world;
         }
 
         public String getFullName() {
@@ -49,7 +47,6 @@ public class PublicSpotListHandler {
         public double getY() { return y; }
         public double getZ() { return z; }
         public String getDimension() { return dimension; }
-        public String getWorld() { return world; }
     }
 
     private static final List<PublicSpotInfo> publicSpots = new ArrayList<>();
@@ -81,8 +78,7 @@ public class PublicSpotListHandler {
                         spot.ownerName(),
                         spot.displayName(),
                         spot.x(), spot.y(), spot.z(),
-                        spot.dimension(),
-                        spot.world()
+                        spot.dimension()
                 ));
             }
 
@@ -105,17 +101,16 @@ public class PublicSpotListHandler {
     /**
      * 请求获取公开 Spot 列表。
      */
-    public static void requestPublicSpots(String worldIdentifier) {
-        ClientPlayNetworking.send(new PublicSpotListC2SPayload(worldIdentifier));
+    public static void requestPublicSpots() {
+        ClientPlayNetworking.send(PublicSpotListC2SPayload.create());
     }
 
     /**
      * 请求获取公开 Spot 列表（异步回调）。
      */
-    public static void requestPublicSpotsWithCallback(String worldIdentifier,
-                                                       java.util.function.Consumer<List<PublicSpotInfo>> callback) {
+    public static void requestPublicSpotsWithCallback(java.util.function.Consumer<List<PublicSpotInfo>> callback) {
         listCallback = callback;
-        requestPublicSpots(worldIdentifier);
+        requestPublicSpots();
     }
 
     /**

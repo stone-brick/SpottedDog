@@ -34,12 +34,27 @@ public class TeleportConfirmHandler {
 
             if (payload.success()) {
                 // 传送成功不显示消息
+                if ("public".equals(payload.type())) {
+                    // 公开 Spot 成功
+                    player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 已公开 Spot: " + payload.targetName()), false);
+                } else if ("unpublic".equals(payload.type())) {
+                    // 取消公开 Spot 成功
+                    player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 已取消公开 Spot: " + payload.targetName()), false);
+                }
                 return;
             } else {
                 // 失败时显示错误消息
-                String message = "[SpottedDog] 传送失败: " + payload.message();
+                String message = "[SpottedDog] " + getActionMessage(payload.type()) + "失败: " + payload.message();
                 player.sendMessage(net.minecraft.text.Text.literal(message), false);
             }
         });
+    }
+
+    private static String getActionMessage(String type) {
+        return switch (type) {
+            case "public" -> "公开 Spot";
+            case "unpublic" -> "取消公开 Spot";
+            default -> "传送";
+        };
     }
 }

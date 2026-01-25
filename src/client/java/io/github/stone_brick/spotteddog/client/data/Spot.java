@@ -11,11 +11,16 @@ public class Spot {
     private String dimension;
     private String world;
     private String worldIdentifier; // 存档/服务器唯一标识
+    private boolean isPublic; // 是否已公开（仅多人模式有效）
 
     public Spot() {
     }
 
     public Spot(String id, String name, double x, double y, double z, float yaw, float pitch, String dimension, String world, String worldIdentifier) {
+        this(id, name, x, y, z, yaw, pitch, dimension, world, worldIdentifier, false);
+    }
+
+    public Spot(String id, String name, double x, double y, double z, float yaw, float pitch, String dimension, String world, String worldIdentifier, boolean isPublic) {
         this.id = id;
         this.name = name;
         this.x = x;
@@ -26,6 +31,7 @@ public class Spot {
         this.dimension = dimension;
         this.world = world;
         this.worldIdentifier = worldIdentifier;
+        this.isPublic = isPublic;
     }
 
     public String getId() {
@@ -126,5 +132,13 @@ public class Spot {
 
     public void setPitch(float pitch) {
         this.pitch = pitch;
+    }
+
+    public boolean isPublic() {
+        return isPublic;
+    }
+
+    public void setPublic(boolean isPublic) {
+        this.isPublic = isPublic;
     }
 }

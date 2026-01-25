@@ -15,7 +15,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import java.util.ArrayList;
@@ -52,7 +51,6 @@ public class PublicSpotHandler {
             MinecraftServer server = player.getEntityWorld().getServer();
             String playerName = player.getName().getString();
             String playerUuid = player.getUuid().toString();
-            String worldIdentifier = payload.worldIdentifier();
 
             // 验证冷却时间
             if (CooldownManager.isInCooldown(player)) {
@@ -69,7 +67,7 @@ public class PublicSpotHandler {
                             playerName, playerUuid, payload.spotName(),
                             payload.x(), payload.y(), payload.z(),
                             payload.yaw(), payload.pitch(),
-                            payload.dimension(), payload.world(), worldIdentifier);
+                            payload.dimension());
 
                     if (success) {
                         ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.success(
@@ -82,7 +80,7 @@ public class PublicSpotHandler {
                 case "unpublish" -> {
                     // 取消公开 Spot
                     boolean success = PublicSpotManager.getInstance().unpublishSpot(
-                            playerName, payload.spotName(), worldIdentifier);
+                            playerName, payload.spotName());
 
                     if (success) {
                         ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.success(
@@ -99,7 +97,7 @@ public class PublicSpotHandler {
         ServerPlayNetworking.registerGlobalReceiver(PublicSpotListC2SPayload.ID, (payload, context) -> {
             ServerPlayerEntity player = context.player();
 
-            // 获取所有公开 Spot（服务器范围，不按 worldIdentifier 隔离）
+            // 获取所有公开 Spot（服务器范围）
             List<PublicSpot> spots = PublicSpotManager.getInstance().getAllPublicSpots();
 
             // 转换为网络传输格式
@@ -109,8 +107,7 @@ public class PublicSpotHandler {
                         spot.getOwnerName(),
                         spot.getDisplayName(),
                         spot.getX(), spot.getY(), spot.getZ(),
-                        spot.getDimension(),
-                        spot.getWorld()
+                        spot.getDimension()
                 ));
             }
 

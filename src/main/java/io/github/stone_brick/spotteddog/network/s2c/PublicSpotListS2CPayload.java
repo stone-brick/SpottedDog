@@ -1,6 +1,5 @@
 package io.github.stone_brick.spotteddog.network.s2c;
 
-import io.github.stone_brick.spotteddog.network.c2s.PublicSpotListC2SPayload;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
@@ -28,7 +27,6 @@ public record PublicSpotListS2CPayload(
                             buf.writeDouble(spot.y());
                             buf.writeDouble(spot.z());
                             buf.writeString(spot.dimension());
-                            buf.writeString(spot.world());
                         }
                     },
                     buf -> {
@@ -41,7 +39,6 @@ public record PublicSpotListS2CPayload(
                                     buf.readDouble(),
                                     buf.readDouble(),
                                     buf.readDouble(),
-                                    buf.readString(),
                                     buf.readString()
                             ));
                         }
@@ -63,8 +60,7 @@ public record PublicSpotListS2CPayload(
             double x,
             double y,
             double z,
-            String dimension,
-            String world
+            String dimension
     ) {
         public String getFullName() {
             return "-" + displayName + "-" + ownerName;

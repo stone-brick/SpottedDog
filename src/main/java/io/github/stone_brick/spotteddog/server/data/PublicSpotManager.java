@@ -105,15 +105,13 @@ public class PublicSpotManager {
      * @param yaw 朝向 Yaw
      * @param pitch 朝向 Pitch
      * @param dimension 维度
-     * @param world 世界名称
-     * @param worldIdentifier 世界标识符
      * @return 公开成功返回 true，失败返回 false
      */
     public synchronized boolean publishSpot(String ownerName, String ownerUuid, String spotName,
                                             double x, double y, double z, float yaw, float pitch,
-                                            String dimension, String world, String worldIdentifier) {
+                                            String dimension) {
         // 检查该玩家是否已有同名的公开 Spot
-        if (hasPublicSpot(ownerName, spotName, worldIdentifier)) {
+        if (hasPublicSpot(ownerName, spotName)) {
             return false;
         }
 
@@ -124,9 +122,7 @@ public class PublicSpotManager {
                 spotName,
                 x, y, z,
                 yaw, pitch,
-                dimension,
-                world,
-                worldIdentifier
+                dimension
         );
 
         publicSpots.add(spot);
@@ -139,14 +135,12 @@ public class PublicSpotManager {
      *
      * @param ownerName 所有者名称
      * @param spotName Spot 名称
-     * @param worldIdentifier 世界标识符
      * @return 取消成功返回 true，失败返回 false
      */
-    public synchronized boolean unpublishSpot(String ownerName, String spotName, String worldIdentifier) {
+    public synchronized boolean unpublishSpot(String ownerName, String spotName) {
         boolean removed = publicSpots.removeIf(s ->
                 s.getOwnerName().equalsIgnoreCase(ownerName) &&
-                        s.getDisplayName().equals(spotName) &&
-                        s.getWorldIdentifier().equals(worldIdentifier));
+                        s.getDisplayName().equals(spotName));
 
         if (removed) {
             savePublicSpots();
@@ -157,20 +151,10 @@ public class PublicSpotManager {
     /**
      * 检查指定玩家的 Spot 是否已公开。
      */
-    public synchronized boolean hasPublicSpot(String ownerName, String spotName, String worldIdentifier) {
+    public synchronized boolean hasPublicSpot(String ownerName, String spotName) {
         return publicSpots.stream().anyMatch(s ->
-                s.getOwnerName().equals(ownerName) &&
-                        s.getDisplayName().equals(spotName) &&
-                        s.getWorldIdentifier().equals(worldIdentifier));
-    }
-
-    /**
-     * 检查 Spot 名称是否已被公开（不允许重复）。
-     */
-    public synchronized boolean hasPublicSpot(String spotName, String worldIdentifier) {
-        return publicSpots.stream().anyMatch(s ->
-                s.getDisplayName().equals(spotName) &&
-                        s.getWorldIdentifier().equals(worldIdentifier));
+                s.getOwnerName().equalsIgnoreCase(ownerName) &&
+                        s.getDisplayName().equals(spotName));
     }
 
     /**
@@ -181,56 +165,12 @@ public class PublicSpotManager {
     }
 
     /**
-     * 获取指定世界的所有公开 Spot。
-     */
-    public synchronized List<PublicSpot> getPublicSpotsByWorld(String worldIdentifier) {
-        return publicSpots.stream()
-                .filter(s -> s.getWorldIdentifier().equals(worldIdentifier))
-                .toList();
-    }
-
-    /**
-     * 获取指定玩家的所有公开 Spot（不区分大小写）。
-     */
-    public synchronized List<PublicSpot> getPublicSpotsByOwner(String ownerName) {
-        return publicSpots.stream()
-                .filter(s -> s.getOwnerName().equalsIgnoreCase(ownerName))
-                .toList();
-    }
-
-    /**
      * 获取指定玩家的所有公开 Spot（通过 UUID）。
      */
     public synchronized List<PublicSpot> getPublicSpotsByOwnerUuid(String ownerUuid) {
         return publicSpots.stream()
                 .filter(s -> s.getOwnerUuid().equals(ownerUuid))
                 .toList();
-    }
-
-    /**
-     * 通过完整名称获取公开 Spot。
-     * 完整名称格式：-spotName-ownerName
-     * 例如：-home-stone_brick
-     */
-    public synchronized Optional<PublicSpot> getPublicSpotByFullName(String fullName, String worldIdentifier) {
-        if (!fullName.startsWith("-")) {
-            return Optional.empty();
-        }
-
-        String withoutPrefix = fullName.substring(1);
-        int lastDashIndex = withoutPrefix.lastIndexOf('-');
-        if (lastDashIndex == -1 || lastDashIndex == 0 || lastDashIndex == withoutPrefix.length() - 1) {
-            return Optional.empty();
-        }
-
-        String spotName = withoutPrefix.substring(0, lastDashIndex);
-        String ownerName = withoutPrefix.substring(lastDashIndex + 1);
-
-        return publicSpots.stream()
-                .filter(s -> s.getOwnerName().equalsIgnoreCase(ownerName))
-                .filter(s -> s.getDisplayName().equals(spotName))
-                .filter(s -> s.getWorldIdentifier().equals(worldIdentifier))
-                .findFirst();
     }
 
     /**

@@ -55,29 +55,25 @@ public class MultiplayerTeleportStrategy implements TeleportStrategy {
      * 公开 Spot。
      */
     public void publishSpot(ClientPlayerEntity player, Spot spot) {
-        String worldIdentifier = getWorldIdentifier();
         ClientPlayNetworking.send(PublicSpotActionC2SPayload.publish(
                 spot.getName(),
                 spot.getX(), spot.getY(), spot.getZ(),
                 spot.getYaw(), spot.getPitch(),
-                spot.getDimension(), spot.getWorld(),
-                worldIdentifier));
+                spot.getDimension()));
     }
 
     /**
      * 取消公开 Spot。
      */
     public void unpublishSpot(ClientPlayerEntity player, String spotName) {
-        String worldIdentifier = getWorldIdentifier();
-        ClientPlayNetworking.send(PublicSpotActionC2SPayload.unpublish(spotName, worldIdentifier));
+        ClientPlayNetworking.send(PublicSpotActionC2SPayload.unpublish(spotName));
     }
 
     /**
      * 请求公开 Spot 列表。
      */
     public void requestPublicSpotList(ClientPlayerEntity player) {
-        String worldIdentifier = getWorldIdentifier();
-        PublicSpotListHandler.requestPublicSpots(worldIdentifier);
+        PublicSpotListHandler.requestPublicSpots();
     }
 
     /**
@@ -85,16 +81,14 @@ public class MultiplayerTeleportStrategy implements TeleportStrategy {
      */
     public void requestPublicSpotListWithCallback(ClientPlayerEntity player,
                                                    java.util.function.Consumer<List<PublicSpotListHandler.PublicSpotInfo>> callback) {
-        String worldIdentifier = getWorldIdentifier();
-        PublicSpotListHandler.requestPublicSpotsWithCallback(worldIdentifier, callback);
+        PublicSpotListHandler.requestPublicSpotsWithCallback(callback);
     }
 
     /**
      * 传送到公开 Spot。
      */
     public void teleportToPublicSpot(ClientPlayerEntity player, String fullName) {
-        String worldIdentifier = getWorldIdentifier();
-        ClientPlayNetworking.send(PublicSpotTeleportC2SPayload.of(fullName, worldIdentifier));
+        ClientPlayNetworking.send(PublicSpotTeleportC2SPayload.of(fullName));
     }
 
     /**
