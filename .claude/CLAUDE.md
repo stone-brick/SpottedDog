@@ -19,7 +19,7 @@ SpottedDog 是一个 Minecraft Fabric 模组，用于 Minecraft 1.21.11，使用
 | `/spot remove <名称>` | 删除标记点 |
 | `/spot update <名称>` | 更新位置 |
 | `/spot rename <旧名> <新名>` | 重命名 |
-| `/spot teleport <名称>` | 传送 (支持 spot 名称或 death/respawn/spawn) |
+| `/spot teleport <名称>` | 传送 (支持 spot 名称或 .death/.respawn/.spawn) |
 | `/spot tp <名称>` | 传送 (简写) |
 | `/spot list` | 列出当前存档/服务器的标记点 |
 
@@ -56,6 +56,7 @@ Minecraft 源码已移动到 `Fabric模组开发规范` skill 目录下：
 - **已完成**：服务端传送请求处理
 - **已完成**：存档/服务器隔离存储（不同存档和服务器数据分离管理）
 - **已完成**：朝向保存与恢复（添加/更新时保存 yaw/pitch，传送时应用）
+- **已完成**：特殊目标使用 . 前缀（.death/.respawn/.spawn），避免与用户 spot 名称冲突
 
 ## 网络架构
 
@@ -105,3 +106,23 @@ String worldDir = worldPath.getFileName().toString();
 - 特殊目标使用服务端 `player.getYaw()` 获取玩家当前朝向
 - spot 使用客户端发送的保存朝向
 - 服务端根据 type 判断使用哪种朝向来源
+
+## 特殊目标 . 前缀实现
+
+**问题**：玩家自定义 spot 名称可能与特殊目标（death/respawn/spawn）冲突。
+
+**解决方案**：特殊目标使用 `.` 前缀与用户 spot 区分：
+- 特殊目标：`.death`、`.respawn`、`.spawn`
+- 用户 spot：不允许以 `.` 开头
+
+**实现要点**：
+- 自动补全建议时特殊目标添加 `.` 前缀
+- `teleport` 方法匹配 `.death` 等带点形式
+- `addSpot`/`renameSpot` 时拒绝以 `.` 开头的名称
+
+**效果**：
+| 命令 | 结果 |
+|------|------|
+| `/spot tp .death` | 传送到死亡点 |
+| `/spot tp death` | 传送到用户 spot "death" |
+| `/spot add .home` | 拒绝（提示不能以 '.' 开头） |
