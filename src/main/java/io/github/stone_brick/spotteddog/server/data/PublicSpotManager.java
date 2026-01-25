@@ -112,8 +112,8 @@ public class PublicSpotManager {
     public synchronized boolean publishSpot(String ownerName, String ownerUuid, String spotName,
                                             double x, double y, double z, float yaw, float pitch,
                                             String dimension, String world, String worldIdentifier) {
-        // 检查是否已经存在同名的公开 Spot（不允许重复）
-        if (hasPublicSpot(spotName, worldIdentifier)) {
+        // 检查该玩家是否已有同名的公开 Spot
+        if (hasPublicSpot(ownerName, spotName, worldIdentifier)) {
             return false;
         }
 
