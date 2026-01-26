@@ -55,9 +55,6 @@ public class SpotCommand {
 
         // 添加公开 Spot（带 - 前缀），仅在多人模式下
         if (remaining.startsWith("-") && !MinecraftClient.getInstance().isInSingleplayer()) {
-            // 自动请求公开 Spot 列表
-            requestPublicSpotsIfNeeded();
-
             List<PublicSpotListHandler.PublicSpotInfo> publicSpots = PublicSpotListHandler.getPublicSpots();
             for (PublicSpotListHandler.PublicSpotInfo spot : publicSpots) {
                 String fullName = spot.getFullName();
@@ -74,7 +71,11 @@ public class SpotCommand {
     private static long lastPublicSpotRequestTime = 0;
     private static final long REQUEST_COOLDOWN_MS = 5000; // 5秒冷却
 
-    private static void requestPublicSpotsIfNeeded() {
+    /**
+     * 如果距离上次请求超过冷却时间，则向服务器请求公开 Spot 列表。
+     * 可从外部调用（如聊天输入监听）。
+     */
+    public static void requestPublicSpotsIfNeeded() {
         long now = System.currentTimeMillis();
         if (now - lastPublicSpotRequestTime > REQUEST_COOLDOWN_MS) {
             lastPublicSpotRequestTime = now;
@@ -274,6 +275,16 @@ public class SpotCommand {
         if (dataManager.updateSpotPosition(name, player.getX(), player.getY(), player.getZ(),
                 player.getYaw(), player.getPitch(), getCurrentDimension(), getCurrentWorldName(), worldId)) {
             sendFeedback("[SpottedDog] 已更新标记点: " + name);
+
+            // 多人模式下同步公开 Spot 的更新
+            if (!MinecraftClient.getInstance().isInSingleplayer()) {
+                String playerName = player.getName().getString();
+                if (PublicSpotListHandler.isSpotPublic(name, playerName)) {
+                    PublicSpotListHandler.sendUpdatePublicSpot(name,
+                            player.getX(), player.getY(), player.getZ(),
+                            player.getYaw(), player.getPitch(), getCurrentDimension());
+                }
+            }
         } else {
             sendFeedback("[SpottedDog] 未找到标记点: " + name);
         }
@@ -294,8 +305,23 @@ public class SpotCommand {
         }
 
         String worldId = getWorldIdentifier();
+        // 检查 oldName 是否已公开（自动补全时已刷新缓存）
+        boolean wasPublic = false;
+        if (!MinecraftClient.getInstance().isInSingleplayer()) {
+            ClientPlayerEntity player = getPlayer();
+            if (player != null) {
+                String playerName = player.getName().getString();
+                wasPublic = PublicSpotListHandler.isSpotPublic(oldName, playerName);
+            }
+        }
+
         if (dataManager.renameSpot(oldName, newName, worldId)) {
             sendFeedback("[SpottedDog] 已将 '" + oldName + "' 重命名为 '" + newName + "'");
+
+            // 多人模式下同步公开 Spot 的重命名
+            if (wasPublic) {
+                PublicSpotListHandler.sendRenamePublicSpot(oldName, newName);
+            }
         } else {
             sendFeedback("[SpottedDog] 重命名失败: 旧名称不存在或新名称已存在");
         }

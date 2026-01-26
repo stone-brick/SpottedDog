@@ -100,4 +100,16 @@ public class PublicSpot {
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    /**
+     * 批量设置位置和朝向。
+     */
+    public void setPositionAndRotation(double x, double y, double z, float yaw, float pitch, String dimension) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.yaw = yaw;
+        this.pitch = pitch;
+        this.dimension = dimension;
+    }
 }

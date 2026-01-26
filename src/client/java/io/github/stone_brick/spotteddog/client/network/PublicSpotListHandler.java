@@ -1,6 +1,7 @@
 package io.github.stone_brick.spotteddog.client.network;
 
 import io.github.stone_brick.spotteddog.network.c2s.PublicSpotListC2SPayload;
+import io.github.stone_brick.spotteddog.network.c2s.PublicSpotUpdateC2SPayload;
 import io.github.stone_brick.spotteddog.network.s2c.PublicSpotListS2CPayload;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -125,5 +126,32 @@ public class PublicSpotListHandler {
      */
     public static void clearCache() {
         publicSpots.clear();
+    }
+
+    /**
+     * 检查指定名称的 Spot 是否已公开（本地缓存）。
+     */
+    public static boolean isSpotPublic(String spotName, String playerName) {
+        for (PublicSpotInfo spot : publicSpots) {
+            if (spot.getOwnerName().equals(playerName) && spot.getDisplayName().equals(spotName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 发送更新公开 Spot 位置的请求。
+     */
+    public static void sendUpdatePublicSpot(String spotName, double x, double y, double z,
+                                            float yaw, float pitch, String dimension) {
+        ClientPlayNetworking.send(PublicSpotUpdateC2SPayload.update(spotName, x, y, z, yaw, pitch, dimension));
+    }
+
+    /**
+     * 发送重命名公开 Spot 的请求。
+     */
+    public static void sendRenamePublicSpot(String oldName, String newName) {
+        ClientPlayNetworking.send(PublicSpotUpdateC2SPayload.rename(oldName, newName));
     }
 }

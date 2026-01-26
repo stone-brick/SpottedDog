@@ -34,6 +34,7 @@ public class PublicSpotHandler {
         PayloadTypeRegistry.playC2S().register(PublicSpotActionC2SPayload.ID, PublicSpotActionC2SPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(PublicSpotListC2SPayload.ID, PublicSpotListC2SPayload.CODEC);
         PayloadTypeRegistry.playC2S().register(PublicSpotTeleportC2SPayload.ID, PublicSpotTeleportC2SPayload.CODEC);
+        PayloadTypeRegistry.playC2S().register(PublicSpotUpdateC2SPayload.ID, PublicSpotUpdateC2SPayload.CODEC);
     }
 
     /**
@@ -196,6 +197,47 @@ public class PublicSpotHandler {
                         "public_tp", payload.fullName(), "传送失败"));
             }
         });
+
+        // 处理更新/重命名公开 Spot 请求
+        ServerPlayNetworking.registerGlobalReceiver(PublicSpotUpdateC2SPayload.ID, (payload, context) -> {
+            ServerPlayerEntity player = context.player();
+            MinecraftServer server = player.getEntityWorld().getServer();
+            String playerName = player.getName().getString();
+
+            switch (payload.action()) {
+                case "update" -> {
+                    // 更新公开 Spot 的位置信息
+                    boolean success = PublicSpotManager.getInstance().updatePublicSpot(
+                            playerName, payload.oldName(),
+                            payload.x(), payload.y(), payload.z(),
+                            payload.yaw(), payload.pitch(), payload.dimension());
+                    if (success) {
+                        broadcastMessage(server, "[SpottedDog] 玩家 " + playerName + " 更新的公开 Spot: " + payload.oldName());
+                    }
+                }
+                case "rename" -> {
+                    // 重命名公开 Spot
+                    boolean success = PublicSpotManager.getInstance().renamePublicSpot(
+                            playerName, payload.oldName(), payload.newName());
+                    if (success) {
+                        broadcastMessage(server, "[SpottedDog] 玩家 " + playerName + " 将公开 Spot 重命名: " + payload.oldName() + " -> " + payload.newName());
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * 广播消息给服务器所有玩家。
+     */
+    private static void broadcastMessage(MinecraftServer server, String message) {
+        if (server == null) return;
+        var playerManager = server.getPlayerManager();
+        if (playerManager == null) return;
+        net.minecraft.text.Text text = net.minecraft.text.Text.literal(message);
+        for (ServerPlayerEntity p : playerManager.getPlayerList()) {
+            p.sendMessage(text, false);
+        }
     }
 
     /**

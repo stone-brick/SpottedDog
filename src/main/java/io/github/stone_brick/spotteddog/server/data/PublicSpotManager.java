@@ -149,6 +149,58 @@ public class PublicSpotManager {
     }
 
     /**
+     * 更新公开 Spot 的位置信息。
+     *
+     * @param ownerName 所有者名称
+     * @param spotName Spot 名称
+     * @param x 坐标 X
+     * @param y 坐标 Y
+     * @param z 坐标 Z
+     * @param yaw 朝向 Yaw
+     * @param pitch 朝向 Pitch
+     * @param dimension 维度
+     * @return 更新成功返回 true，失败返回 false
+     */
+    public synchronized boolean updatePublicSpot(String ownerName, String spotName,
+                                                  double x, double y, double z,
+                                                  float yaw, float pitch, String dimension) {
+        for (PublicSpot spot : publicSpots) {
+            if (spot.getOwnerName().equalsIgnoreCase(ownerName) &&
+                    spot.getDisplayName().equals(spotName)) {
+                spot.setPositionAndRotation(x, y, z, yaw, pitch, dimension);
+                savePublicSpots();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 重命名公开 Spot。
+     *
+     * @param ownerName 所有者名称
+     * @param oldName 原名称
+     * @param newName 新名称
+     * @return 重命名成功返回 true，失败返回 false
+     */
+    public synchronized boolean renamePublicSpot(String ownerName, String oldName, String newName) {
+        // 检查新名称是否已存在
+        if (hasPublicSpot(ownerName, newName)) {
+            return false;
+        }
+
+        for (PublicSpot spot : publicSpots) {
+            if (spot.getOwnerName().equalsIgnoreCase(ownerName) &&
+                    spot.getDisplayName().equals(oldName)) {
+                spot.setDisplayName(newName);
+                savePublicSpots();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * 检查指定玩家的 Spot 是否已公开。
      */
     public synchronized boolean hasPublicSpot(String ownerName, String spotName) {
