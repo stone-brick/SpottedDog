@@ -9,8 +9,10 @@
 - **智能策略模式**：根据游戏模式（单人/多人）自动选择最佳传送方式
 - **自动死亡记录**：自动记录玩家死亡位置
 - **朝向保存与恢复**：传送时保持玩家当前朝向（特殊目标）或恢复保存的朝向（自定义标记点）
-- **服务端安全优化**：传送冷却时间、全局速率限制
+- **服务端安全优化**：传送冷却时间、全局速率限制、公开列表请求冷却
 - **公开 Spot**（多人模式）：将你的 Spot 公开给其他玩家，其他玩家可直接传送到公开 Spot
+- **公开 Spot 同步**：更新/重命名公开 Spot 时自动同步到服务端
+- **中文支持**：Spot 名称支持中文，自动补全统一加双引号
 - **简洁消息**：传送成功无打扰提示，失败时显示错误信息
 
 ## 安装方法
@@ -78,7 +80,8 @@ src/
 │       │   │   ├── TeleportRequestC2SPayload.java
 │       │   │   ├── PublicSpotActionC2SPayload.java
 │       │   │   ├── PublicSpotListC2SPayload.java
-│       │   │   └── PublicSpotTeleportC2SPayload.java
+│       │   │   ├── PublicSpotTeleportC2SPayload.java
+│       │   │   └── PublicSpotUpdateC2SPayload.java
 │       │   └── s2c/                     # 服务端到客户端负载
 │       │       ├── TeleportConfirmS2CPayload.java
 │       │       └── PublicSpotListS2CPayload.java
@@ -147,7 +150,7 @@ src/
 
 | 版本 | 变更 |
 |------|------|
-| 4.2-SNAPSHOT | 数据结构重构（按存档/服务器分组存储）、移除 isPublic 字段 |
+| 4.2-SNAPSHOT | 数据结构重构、公开 Spot 同步更新、中文支持、列表预加载、服务端冷却限制 |
 | 4.1-SNAPSHOT | 公开 Spot 功能、移除成功提示消息 |
 | 4.0-SNAPSHOT | 世界出生点修复、服务端安全优化、单人模式消息优化 |
 | 3.2 | 特殊目标 . 前缀实现 |

@@ -14,8 +14,7 @@ public class TeleportHandler {
      * 每次调用时动态检查当前模式，确保策略正确。
      */
     public static TeleportStrategy getStrategy() {
-        boolean isSingleplayer = MinecraftClient.getInstance().isInSingleplayer();
-        return isSingleplayer
+        return MinecraftClient.getInstance().isInSingleplayer()
                 ? new SingleplayerTeleportStrategy()
                 : new MultiplayerTeleportStrategy();
     }
