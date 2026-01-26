@@ -6,6 +6,7 @@ import io.github.stone_brick.spotteddog.network.s2c.TeleportConfirmS2CPayload;
 import io.github.stone_brick.spotteddog.server.config.CooldownManager;
 import io.github.stone_brick.spotteddog.server.data.PublicSpot;
 import io.github.stone_brick.spotteddog.server.data.PublicSpotManager;
+import io.github.stone_brick.spotteddog.server.permission.PermissionManager;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.packet.s2c.play.PositionFlag;
@@ -54,11 +55,28 @@ public class PublicSpotHandler {
             String playerName = player.getName().getString();
             String playerUuid = player.getUuid().toString();
 
-            // 验证冷却时间
-            if (CooldownManager.isInCooldown(player)) {
-                int remaining = CooldownManager.getRemainingCooldown(player);
+            // 验证权限
+            if (!PermissionManager.canManagePublicSpots(player)) {
+                String messageType = "publish".equals(payload.action()) ? "public" : "unpublic";
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                        "public", payload.spotName(), "冷却中，请等待 " + remaining + " 秒"));
+                        messageType, payload.spotName(), "No permission"));
+                return;
+            }
+
+            // 验证冷却时间（使用独立的公开 Spot 冷却）
+            if (CooldownManager.isInPublicSpotCooldown(player)) {
+                int remaining = CooldownManager.getPublicSpotRemainingCooldown(player);
+                String messageType = "publish".equals(payload.action()) ? "public" : "unpublic";
+                ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
+                        messageType, payload.spotName(), "冷却中，请等待 " + remaining + " 秒"));
+                return;
+            }
+
+            // 验证全局速率限制
+            if (!CooldownManager.tryIncrementPublicSpotGlobalCount()) {
+                String messageType = "publish".equals(payload.action()) ? "public" : "unpublic";
+                ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
+                        messageType, payload.spotName(), "服务器繁忙，请稍后再试"));
                 return;
             }
 
@@ -79,6 +97,7 @@ public class PublicSpotHandler {
                             payload.dimension());
 
                     if (success) {
+                        CooldownManager.updateLastPublicSpotRequest(player);
                         ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.success(
                                 "public", payload.spotName()));
                     } else {
@@ -99,6 +118,7 @@ public class PublicSpotHandler {
                             playerName, payload.spotName());
 
                     if (success) {
+                        CooldownManager.updateLastPublicSpotRequest(player);
                         ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.success(
                                 "unpublic", payload.spotName()));
                     } else {
@@ -141,6 +161,13 @@ public class PublicSpotHandler {
             ServerPlayerEntity player = context.player();
             MinecraftServer server = player.getEntityWorld().getServer();
             String playerUuid = player.getUuid().toString();
+
+            // 验证权限
+            if (!PermissionManager.canTeleportToPublicSpot(player)) {
+                ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
+                        "public_tp", payload.fullName(), "No permission"));
+                return;
+            }
 
             // 验证冷却时间
             if (CooldownManager.isInCooldown(player)) {
@@ -209,6 +236,11 @@ public class PublicSpotHandler {
             ServerPlayerEntity player = context.player();
             MinecraftServer server = player.getEntityWorld().getServer();
             String playerName = player.getName().getString();
+
+            // 验证权限
+            if (!PermissionManager.canManagePublicSpots(player)) {
+                return;
+            }
 
             switch (payload.action()) {
                 case "update" -> {

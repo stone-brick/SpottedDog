@@ -4,6 +4,7 @@ import io.github.stone_brick.spotteddog.network.c2s.TeleportRequestC2SPayload;
 import io.github.stone_brick.spotteddog.network.s2c.TeleportConfirmS2CPayload;
 import io.github.stone_brick.spotteddog.server.config.ConfigManager;
 import io.github.stone_brick.spotteddog.server.config.CooldownManager;
+import io.github.stone_brick.spotteddog.server.permission.PermissionManager;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.packet.s2c.play.PositionFlag;
@@ -69,8 +70,8 @@ public class TeleportRequestHandler {
                 return;
             }
 
-            // 验证权限（TODO: 后续添加权限管理）
-            if (!hasPermission(player, type)) {
+            // 验证权限
+            if (!PermissionManager.canTeleport(player)) {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
                         type, targetName, "No permission"));
                 return;
@@ -87,15 +88,6 @@ public class TeleportRequestHandler {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(type, targetName, result.message()));
             }
         });
-    }
-
-    /**
-     * 检查玩家是否有执行该类型传送的权限。
-     */
-    @SuppressWarnings("unused")
-    private static boolean hasPermission(ServerPlayerEntity player, String type) {
-        // TODO: 后续实现权限管理
-        return true;
     }
 
     /**

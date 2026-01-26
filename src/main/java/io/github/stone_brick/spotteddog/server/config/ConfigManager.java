@@ -31,6 +31,21 @@ public class ConfigManager {
 
         @SerializedName("max_teleports_per_second")
         public int maxTeleportsPerSecond = 10;
+
+        @SerializedName("allow_all_players_teleport")
+        public boolean allowAllPlayersTeleport = false; // 默认仅OP可使用传送功能
+
+        @SerializedName("allow_all_players_public_spot")
+        public boolean allowAllPlayersPublicSpot = false; // 默认仅OP可使用公开 Spot 功能
+
+        @SerializedName("allow_all_players_public_spot_teleport")
+        public boolean allowAllPlayersPublicSpotTeleport = false; // 默认仅OP可传送到公开 Spot
+
+        @SerializedName("public_spot_cooldown_seconds")
+        public int publicSpotCooldownSeconds = 5; // 公开/取消公开 Spot 冷却时间
+
+        @SerializedName("max_public_spot_requests_per_second")
+        public int maxPublicSpotRequestsPerSecond = 10; // 每秒最大公开/取消公开请求数
     }
 
     /**
@@ -91,6 +106,51 @@ public class ConfigManager {
      */
     public static int getTeleportCooldownSeconds() {
         return getConfig().teleportCooldownSeconds;
+    }
+
+    /**
+     * 检查是否允许所有玩家使用传送功能。
+     *
+     * @return true 如果允许所有玩家使用传送
+     */
+    public static boolean isAllowAllPlayersTeleport() {
+        return getConfig().allowAllPlayersTeleport;
+    }
+
+    /**
+     * 检查是否允许所有玩家使用公开 Spot 功能。
+     *
+     * @return true 如果允许所有玩家使用公开 Spot
+     */
+    public static boolean isAllowAllPlayersPublicSpot() {
+        return getConfig().allowAllPlayersPublicSpot;
+    }
+
+    /**
+     * 获取公开/取消公开 Spot 的冷却时间（秒）。
+     *
+     * @return 冷却时间（秒）
+     */
+    public static int getPublicSpotCooldownSeconds() {
+        return getConfig().publicSpotCooldownSeconds;
+    }
+
+    /**
+     * 获取每秒最大公开/取消公开请求数。
+     *
+     * @return 最大请求数
+     */
+    public static int getMaxPublicSpotRequestsPerSecond() {
+        return getConfig().maxPublicSpotRequestsPerSecond;
+    }
+
+    /**
+     * 检查是否允许所有玩家传送到公开 Spot。
+     *
+     * @return true 如果允许所有玩家传送到公开 Spot
+     */
+    public static boolean isAllowAllPlayersPublicSpotTeleport() {
+        return getConfig().allowAllPlayersPublicSpotTeleport;
     }
 
     /**

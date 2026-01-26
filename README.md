@@ -87,6 +87,8 @@ src/
 │           ├── config/
 │           │   ├── ConfigManager.java   # 配置文件管理
 │           │   └── CooldownManager.java # 冷却时间管理
+│           ├── permission/
+│           │   └── PermissionManager.java # 权限管理
 │           ├── data/
 │           │   ├── PublicSpot.java      # 公开 Spot 数据模型
 │           │   └── PublicSpotManager.java # 公开 Spot 存储管理
@@ -132,13 +134,26 @@ src/
 ```json
 {
   "teleport_cooldown_seconds": 1,
-  "max_teleports_per_second": 10
+  "max_teleports_per_second": 10,
+  "allow_all_players_teleport": false,
+  "allow_all_players_public_spot": false,
+  "allow_all_players_public_spot_teleport": false,
+  "public_spot_cooldown_seconds": 5,
+  "max_public_spot_requests_per_second": 10
 }
 ```
+
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
-| `teleport_cooldown_seconds` | 1 | 玩家个人冷却时间（秒） |
+| `teleport_cooldown_seconds` | 1 | 玩家个人传送冷却时间（秒） |
 | `max_teleports_per_second` | 10 | 全局每秒最大传送请求数 |
+| `allow_all_players_teleport` | false | 是否允许所有玩家使用传送功能 |
+| `allow_all_players_public_spot` | false | 是否允许所有玩家公开/取消公开 Spot |
+| `allow_all_players_public_spot_teleport` | false | 是否允许所有玩家传送到公开 Spot |
+| `public_spot_cooldown_seconds` | 5 | 公开/取消公开 Spot 的玩家冷却时间（秒） |
+| `max_public_spot_requests_per_second` | 10 | 全局每秒最大公开/取消公开请求数 |
+
+**权限说明**：默认情况下，只有 OP 玩家可使用传送和公开 Spot 相关功能。设置对应 `allow_all_players_*` 为 `true` 可允许所有玩家使用。
 
 ### 公开 Spot 数据
 
@@ -148,6 +163,7 @@ src/
 
 | 版本 | 变更 |
 |------|------|
+| 5.0.0-SNAPSHOT | 权限管理、独立的公开 Spot 冷却、传送到公开 Spot 权限 |
 | 4.3.0-SNAPSHOT | 中文支持、列表预加载、服务端冷却限制 |
 | 4.2.0-SNAPSHOT | 数据结构重构、公开 Spot 同步更新、移除 isPublic 字段 |
 | 4.1.0-SNAPSHOT | 公开 Spot 功能、移除成功提示消息 |
@@ -157,7 +173,7 @@ src/
 
 MIT License
 
-Copyright (c) 2025 stone_brick
+Copyright (c) 2026 stone_brick
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

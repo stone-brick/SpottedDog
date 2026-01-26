@@ -181,4 +181,108 @@ public class CooldownManager {
         long remaining = PUBLIC_LIST_COOLDOWN_MS - (now - lastRequest);
         return remaining > 0 ? (int) Math.ceil(remaining / 1000.0) : 0;
     }
+
+    // ===== 公开/取消公开 Spot 冷却管理 =====
+
+    private static final ConcurrentHashMap<UUID, Long> publicSpotCooldowns = new ConcurrentHashMap<>();
+    private static final AtomicLong publicSpotRequestsThisSecond = new AtomicLong(0);
+    private static long publicSpotLastSecondBoundary = System.currentTimeMillis() / 1000;
+
+    /**
+     * 检查玩家是否在公开 Spot 冷却中。
+     *
+     * @param player 玩家
+     * @return true 如果在冷却中，false 可以操作
+     */
+    public static boolean isInPublicSpotCooldown(ServerPlayerEntity player) {
+        Long lastRequest = publicSpotCooldowns.get(player.getUuid());
+        if (lastRequest == null) {
+            return false;
+        }
+
+        long now = System.currentTimeMillis();
+        long cooldownMs = ConfigManager.getPublicSpotCooldownSeconds() * 1000L;
+        return (now - lastRequest) < cooldownMs;
+    }
+
+    /**
+     * 获取玩家公开 Spot 剩余冷却时间（秒）。
+     *
+     * @param player 玩家
+     * @return 剩余冷却时间，0 表示没有冷却
+     */
+    public static int getPublicSpotRemainingCooldown(ServerPlayerEntity player) {
+        Long lastRequest = publicSpotCooldowns.get(player.getUuid());
+        if (lastRequest == null) {
+            return 0;
+        }
+
+        long now = System.currentTimeMillis();
+        long cooldownMs = ConfigManager.getPublicSpotCooldownSeconds() * 1000L;
+        long remaining = cooldownMs - (now - lastRequest);
+
+        return remaining > 0 ? (int) Math.ceil(remaining / 1000.0) : 0;
+    }
+
+    /**
+     * 检查公开 Spot 全局速率限制。
+     *
+     * @return true 如果可以继续，false 如果超出限制
+     */
+    public static boolean checkPublicSpotGlobalRateLimit() {
+        long now = System.currentTimeMillis() / 1000;
+        if (now != publicSpotLastSecondBoundary) {
+            publicSpotRequestsThisSecond.set(0);
+            publicSpotLastSecondBoundary = now;
+        }
+        return publicSpotRequestsThisSecond.get() < ConfigManager.getMaxPublicSpotRequestsPerSecond();
+    }
+
+    /**
+     * 尝试增加公开 Spot 全局计数。
+     *
+     * @return true 如果成功增加，false 如果超出限制
+     */
+    public static boolean tryIncrementPublicSpotGlobalCount() {
+        long now = System.currentTimeMillis() / 1000;
+        if (now != publicSpotLastSecondBoundary) {
+            publicSpotRequestsThisSecond.set(0);
+            publicSpotLastSecondBoundary = now;
+        }
+        long current;
+        long max = ConfigManager.getMaxPublicSpotRequestsPerSecond();
+        do {
+            current = publicSpotRequestsThisSecond.get();
+            if (current >= max) {
+                return false;
+            }
+        } while (!publicSpotRequestsThisSecond.compareAndSet(current, current + 1));
+        return true;
+    }
+
+    /**
+     * 更新玩家的最后公开 Spot 操作时间（开始冷却）。
+     *
+     * @param player 玩家
+     */
+    public static void updateLastPublicSpotRequest(ServerPlayerEntity player) {
+        publicSpotCooldowns.put(player.getUuid(), System.currentTimeMillis());
+    }
+
+    /**
+     * 清除玩家的公开 Spot 冷却时间。
+     *
+     * @param player 玩家
+     */
+    public static void clearPublicSpotCooldown(ServerPlayerEntity player) {
+        publicSpotCooldowns.remove(player.getUuid());
+    }
+
+    /**
+     * 清除所有公开 Spot 冷却时间。
+     */
+    public static void clearAllPublicSpotCooldowns() {
+        publicSpotCooldowns.clear();
+        publicSpotRequestsThisSecond.set(0);
+    }
 }
