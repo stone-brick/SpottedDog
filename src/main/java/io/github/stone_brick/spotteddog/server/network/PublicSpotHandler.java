@@ -113,6 +113,12 @@ public class PublicSpotHandler {
         ServerPlayNetworking.registerGlobalReceiver(PublicSpotListC2SPayload.ID, (payload, context) -> {
             ServerPlayerEntity player = context.player();
 
+            // 验证冷却时间
+            if (!CooldownManager.canRequestPublicList(player)) {
+                return; // 忽略请求，不返回错误
+            }
+            CooldownManager.recordPublicListRequest(player);
+
             // 获取所有公开 Spot（服务器范围）
             List<PublicSpot> spots = PublicSpotManager.getInstance().getAllPublicSpots();
 

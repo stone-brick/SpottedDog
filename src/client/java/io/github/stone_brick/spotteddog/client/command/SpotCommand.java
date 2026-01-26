@@ -55,6 +55,9 @@ public class SpotCommand {
 
         // 添加公开 Spot（带 - 前缀），仅在多人模式下
         if (remaining.startsWith("-") && !MinecraftClient.getInstance().isInSingleplayer()) {
+            // 请求公开 Spot 列表
+            requestPublicSpotsIfNeeded();
+
             List<PublicSpotListHandler.PublicSpotInfo> publicSpots = PublicSpotListHandler.getPublicSpots();
             for (PublicSpotListHandler.PublicSpotInfo spot : publicSpots) {
                 String fullName = spot.getFullName();
@@ -73,9 +76,8 @@ public class SpotCommand {
 
     /**
      * 如果距离上次请求超过冷却时间，则向服务器请求公开 Spot 列表。
-     * 可从外部调用（如聊天输入监听）。
      */
-    public static void requestPublicSpotsIfNeeded() {
+    private static void requestPublicSpotsIfNeeded() {
         long now = System.currentTimeMillis();
         if (now - lastPublicSpotRequestTime > REQUEST_COOLDOWN_MS) {
             lastPublicSpotRequestTime = now;
@@ -86,6 +88,33 @@ public class SpotCommand {
     }
 
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
+        // 在 /spot 后输入内容时触发公开 Spot 更新（仅输入 ASCII 字符时）
+        dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
+                .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("trigger", StringArgumentType.string())
+                        .suggests((context, builder) -> {
+                            String remaining = builder.getRemaining();
+                            // 当输入内容非空且以 ASCII 字符开头时触发更新
+                            if (!remaining.isEmpty() && Character.isLetterOrDigit(remaining.charAt(0))
+                                    && !MinecraftClient.getInstance().isInSingleplayer()) {
+                                requestPublicSpotsIfNeeded();
+
+                                // 提供公开 Spot 自动补全
+                                String lowerRemaining = remaining.toLowerCase();
+                                List<PublicSpotListHandler.PublicSpotInfo> publicSpots = PublicSpotListHandler.getPublicSpots();
+                                for (PublicSpotListHandler.PublicSpotInfo spot : publicSpots) {
+                                    String fullName = spot.getFullName();
+                                    if (fullName.toLowerCase().startsWith(lowerRemaining)) {
+                                        builder.suggest("\"" + fullName + "\"");
+                                    }
+                                }
+                            }
+                            return builder.buildFuture();
+                        })
+                        .executes(context -> {
+                            // 不执行任何操作
+                            return Command.SINGLE_SUCCESS;
+                        })));
+
         // /spot add <name>
         dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
                 .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("add")

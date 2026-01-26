@@ -13,7 +13,11 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class CooldownManager {
 
+    // 公开 Spot 列表请求冷却时间（毫秒）
+    private static final long PUBLIC_LIST_COOLDOWN_MS = 5000;
+
     private static final ConcurrentHashMap<UUID, Long> playerCooldowns = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<UUID, Long> publicListRequests = new ConcurrentHashMap<>();
     private static final AtomicLong teleportsThisSecond = new AtomicLong(0);
     private static long lastSecondBoundary = System.currentTimeMillis() / 1000;
 
@@ -114,6 +118,7 @@ public class CooldownManager {
      */
     public static void clearAllCooldowns() {
         playerCooldowns.clear();
+        publicListRequests.clear();
         teleportsThisSecond.set(0);
     }
 
@@ -133,5 +138,47 @@ public class CooldownManager {
             return 0;
         }
         return (int) teleportsThisSecond.get();
+    }
+
+    // ===== 公开 Spot 列表请求冷却管理 =====
+
+    /**
+     * 检查玩家是否可以请求公开 Spot 列表。
+     *
+     * @param player 玩家
+     * @return true 如果可以请求，false 如果在冷却中
+     */
+    public static boolean canRequestPublicList(ServerPlayerEntity player) {
+        Long lastRequest = publicListRequests.get(player.getUuid());
+        if (lastRequest == null) {
+            return true;
+        }
+        long now = System.currentTimeMillis();
+        return (now - lastRequest) >= PUBLIC_LIST_COOLDOWN_MS;
+    }
+
+    /**
+     * 记录玩家的公开列表请求时间。
+     *
+     * @param player 玩家
+     */
+    public static void recordPublicListRequest(ServerPlayerEntity player) {
+        publicListRequests.put(player.getUuid(), System.currentTimeMillis());
+    }
+
+    /**
+     * 获取玩家公开列表请求的剩余冷却时间（秒）。
+     *
+     * @param player 玩家
+     * @return 剩余冷却时间，0 表示没有冷却
+     */
+    public static int getPublicListRemainingCooldown(ServerPlayerEntity player) {
+        Long lastRequest = publicListRequests.get(player.getUuid());
+        if (lastRequest == null) {
+            return 0;
+        }
+        long now = System.currentTimeMillis();
+        long remaining = PUBLIC_LIST_COOLDOWN_MS - (now - lastRequest);
+        return remaining > 0 ? (int) Math.ceil(remaining / 1000.0) : 0;
     }
 }
