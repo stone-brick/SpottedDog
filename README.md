@@ -152,9 +152,6 @@ src/
 | 4.2.0-SNAPSHOT | 数据结构重构、公开 Spot 同步更新、移除 isPublic 字段 |
 | 4.1.0-SNAPSHOT | 公开 Spot 功能、移除成功提示消息 |
 | 4.0.0-SNAPSHOT | 世界出生点修复、服务端安全优化、单人模式消息优化 |
-| 3.2-SNAPSHOT | 特殊目标 . 前缀实现 |
-| 3.1-SNAPSHOT | 朝向保存与恢复 |
-| 3.0-SNAPSHOT | 存档/服务器隔离存储 |
 
 ## 许可证
 
