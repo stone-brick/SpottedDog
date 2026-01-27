@@ -11,6 +11,7 @@
 - **朝向保存与恢复**：传送时保持玩家当前朝向（特殊目标）或恢复保存的朝向（自定义标记点）
 - **服务端安全优化**：传送冷却时间、全局速率限制、公开列表请求冷却
 - **公开 Spot**（多人模式）：将你的 Spot 公开给其他玩家，其他玩家可直接传送到公开 Spot
+- **白名单权限**（OP）：细粒度控制普通玩家的功能权限
 - **简洁消息**：传送成功无打扰提示，失败时显示错误信息
 
 ## 安装方法
@@ -34,6 +35,9 @@
 | `/spot public <名称>` | 公开 Spot（仅多人模式） |
 | `/spot unpublic <名称>` | 取消公开 Spot（仅多人模式） |
 | `/spot public list` | 列出公开的 Spot（仅多人模式） |
+| `/spot whitelist teleport add\|remove\|list <玩家名>` | 传送白名单管理（OP） |
+| `/spot whitelist public add\|remove\|list <玩家名>` | 公开 Spot 白名单管理（OP） |
+| `/spot whitelist publictp add\|remove\|list <玩家名>` | 公开 Spot 传送白名单管理（OP） |
 
 ### 特殊传送目标
 
@@ -79,7 +83,8 @@ src/
 │       │   │   ├── PublicSpotActionC2SPayload.java
 │       │   │   ├── PublicSpotListC2SPayload.java
 │       │   │   ├── PublicSpotTeleportC2SPayload.java
-│       │   │   └── PublicSpotUpdateC2SPayload.java
+│       │   │   ├── PublicSpotUpdateC2SPayload.java
+│       │   │   └── WhitelistAdminC2SPayload.java
 │       │   └── s2c/                     # 服务端到客户端负载
 │       │       ├── TeleportConfirmS2CPayload.java
 │       │       └── PublicSpotListS2CPayload.java
@@ -88,18 +93,21 @@ src/
 │           │   ├── ConfigManager.java   # 配置文件管理
 │           │   └── CooldownManager.java # 冷却时间管理
 │           ├── permission/
-│           │   └── PermissionManager.java # 权限管理
+│           │   ├── PermissionManager.java # 权限管理
+│           │   └── WhitelistManager.java # 白名单管理
 │           ├── data/
 │           │   ├── PublicSpot.java      # 公开 Spot 数据模型
 │           │   └── PublicSpotManager.java # 公开 Spot 存储管理
 │           └── network/
 │               ├── TeleportRequestHandler.java  # 服务端传送请求处理
-│               └── PublicSpotHandler.java       # 公开 Spot 请求处理
+│               ├── PublicSpotHandler.java       # 公开 Spot 请求处理
+│               └── WhitelistAdminHandler.java   # 白名单管理请求处理
 └── client/
     └── java/io/github/stone_brick/spotteddog/client/
         ├── SpotteddogClient.java        # 客户端入口
         ├── command/
         │   ├── SpotCommand.java         # 命令实现
+        │   ├── WhitelistAdminCommand.java # 白名单管理命令
         │   ├── TeleportHandler.java     # 传送处理入口
         │   ├── TeleportStrategy.java    # 传送策略接口
         │   ├── SingleplayerTeleportStrategy.java
@@ -109,7 +117,8 @@ src/
         │   └── Spot.java                # 标记点数据模型
         └── network/
             ├── TeleportConfirmHandler.java   # 客户端传送确认处理
-            └── PublicSpotListHandler.java    # 公开 Spot 列表处理
+            ├── PublicSpotListHandler.java    # 公开 Spot 列表处理
+            └── WhitelistAdminHandler.java   # 白名单管理请求发送
 ```
 
 ## 技术栈
@@ -159,10 +168,28 @@ src/
 
 公开 Spot 数据保存在服务端 `config/spotteddog/public_spots.json` 文件中。
 
+### 白名单数据
+
+白名单数据保存在 `config/spotteddog/` 目录下：
+- `teleport_whitelist.json` - 传送白名单
+- `public_spot_whitelist.json` - 公开 Spot 白名单
+- `public_spot_teleport_whitelist.json` - 公开 Spot 传送白名单
+
+白名单提供细粒度的权限控制。当全局配置 `allow_all_players_*` 为 `false` 时，白名单中的玩家仍可使用对应功能。
+
+**权限检查优先级**：
+1. OP 玩家始终拥有所有权限
+2. 白名单玩家在对应白名单中则允许
+3. 全局配置 `allow_all_players_*` 为 true 则允许
+4. 否则拒绝
+
+**OP 限制**：OP 无法修改自己或其他 OP 的白名单状态。
+
 ## 版本历史
 
 | 版本 | 变更 |
 |------|------|
+| 5.1.0-SNAPSHOT | 白名单权限管理功能、OP 自我保护限制 |
 | 5.0.0-SNAPSHOT | 权限管理、独立的公开 Spot 冷却、传送到公开 Spot 权限 |
 | 4.3.0-SNAPSHOT | 中文支持、列表预加载、服务端冷却限制 |
 | 4.2.0-SNAPSHOT | 数据结构重构、公开 Spot 同步更新、移除 isPublic 字段 |
