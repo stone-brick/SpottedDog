@@ -1,6 +1,7 @@
 package io.github.stone_brick.spotteddog.server.permission;
 
 import io.github.stone_brick.spotteddog.server.config.ConfigManager;
+import io.github.stone_brick.spotteddog.server.permission.WhitelistManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.PlayerConfigEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -37,6 +38,7 @@ public final class PermissionManager {
      * <p>
      * 权限规则：
      * - OP 玩家拥有所有权限
+     * - 白名单玩家优先于全局配置
      * - 普通玩家：根据配置文件决定（allowAllPlayers）
      *
      * @param player     玩家
@@ -53,11 +55,17 @@ public final class PermissionManager {
             return true;
         }
 
-        // 根据权限类型进行细粒度检查
+        // 根据权限类型进行细粒度检查（白名单优先于全局配置）
         return switch (permission) {
-            case PERMISSION_TELEPORT -> ConfigManager.isAllowAllPlayersTeleport(); // 传送功能受配置控制
-            case PERMISSION_PUBLIC_SPOT -> ConfigManager.isAllowAllPlayersPublicSpot(); // 公开 Spot 功能受配置控制
-            case PERMISSION_PUBLIC_SPOT_TELEPORT -> ConfigManager.isAllowAllPlayersPublicSpotTeleport(); // 传送到公开 Spot 受配置控制
+            case PERMISSION_TELEPORT ->
+                WhitelistManager.isPlayerInWhitelist(player.getUuid(), WhitelistManager.WhitelistType.TELEPORT)
+                || ConfigManager.isAllowAllPlayersTeleport();
+            case PERMISSION_PUBLIC_SPOT ->
+                WhitelistManager.isPlayerInWhitelist(player.getUuid(), WhitelistManager.WhitelistType.PUBLIC_SPOT)
+                || ConfigManager.isAllowAllPlayersPublicSpot();
+            case PERMISSION_PUBLIC_SPOT_TELEPORT ->
+                WhitelistManager.isPlayerInWhitelist(player.getUuid(), WhitelistManager.WhitelistType.PUBLIC_SPOT_TELEPORT)
+                || ConfigManager.isAllowAllPlayersPublicSpotTeleport();
             case PERMISSION_ADMIN -> false; // 管理员权限仅限 OP
             default -> false;
         };

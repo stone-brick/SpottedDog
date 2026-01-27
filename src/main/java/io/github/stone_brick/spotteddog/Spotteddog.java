@@ -2,6 +2,7 @@ package io.github.stone_brick.spotteddog;
 
 import io.github.stone_brick.spotteddog.server.network.PublicSpotHandler;
 import io.github.stone_brick.spotteddog.server.network.TeleportRequestHandler;
+import io.github.stone_brick.spotteddog.server.network.WhitelistAdminHandler;
 import net.fabricmc.api.ModInitializer;
 
 /**
@@ -15,5 +16,6 @@ public class Spotteddog implements ModInitializer {
         // 注册服务端网络处理器
         TeleportRequestHandler.register();
         PublicSpotHandler.register();
+        WhitelistAdminHandler.register();
     }
 }

@@ -1,6 +1,7 @@
 package io.github.stone_brick.spotteddog.client;
 
 import io.github.stone_brick.spotteddog.client.command.SpotCommand;
+import io.github.stone_brick.spotteddog.client.command.WhitelistAdminCommand;
 import io.github.stone_brick.spotteddog.client.network.PublicSpotListHandler;
 import io.github.stone_brick.spotteddog.client.network.TeleportConfirmHandler;
 import net.fabricmc.api.ClientModInitializer;
@@ -14,7 +15,9 @@ public class SpotteddogClient implements ClientModInitializer {
         TeleportConfirmHandler.register();
         PublicSpotListHandler.register();
 
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
-                SpotCommand.register(dispatcher));
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            SpotCommand.register(dispatcher);
+            WhitelistAdminCommand.register(dispatcher);
+        });
     }
 }
