@@ -13,6 +13,7 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.GlobalPos;
@@ -52,28 +53,28 @@ public class TeleportRequestHandler {
             if (CooldownManager.isInCooldown(player)) {
                 int remaining = CooldownManager.getRemainingCooldown(player);
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                        type, targetName, "冷却中，请等待 " + remaining + " 秒"));
+                        type, targetName, Text.translatable("spotteddog.cooldown.message", remaining).getString()));
                 return;
             }
 
             // 验证全局速率限制
             if (!CooldownManager.tryIncrementGlobalCount()) {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                        type, targetName, "服务器繁忙，请稍后再试"));
+                        type, targetName, "spotteddog.server.busy"));
                 return;
             }
 
             // 验证名称长度（仅 spot 类型）
             if ("spot".equals(type) && targetName != null && targetName.length() > MAX_NAME_LENGTH) {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                        type, targetName, "Spot 名称超过最大长度"));
+                        type, targetName, "spotteddog.spot.name.too.long"));
                 return;
             }
 
             // 验证权限
             if (!PermissionManager.canTeleport(player)) {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                        type, targetName, "No permission"));
+                        type, targetName, "spotteddog.permission.denied"));
                 return;
             }
 
@@ -116,7 +117,7 @@ public class TeleportRequestHandler {
                 // 传送到世界出生点（BlockPos 需要添加 0.5 偏移，保持玩家当前朝向）
                 ServerWorld overworld = server.getOverworld();
                 if (overworld == null) {
-                    yield TeleportResult.fail("Overworld not available");
+                    yield TeleportResult.fail("spotteddog.world.overworld.unavailable");
                 }
                 // 使用 MinecraftServer.getSpawnPoint() 获取世界的实际出生点坐标
                 BlockPos spawnPos = server.getSpawnPoint().getPos();
@@ -124,29 +125,29 @@ public class TeleportRequestHandler {
                 double targetY = spawnPos.getY();
                 double targetZ = spawnPos.getZ() + 0.5;
                 yield teleportTo(player, World.OVERWORLD, targetX, targetY, targetZ, yaw, pitch) ?
-                        TeleportResult.ok() : TeleportResult.fail("Teleport failed");
+                        TeleportResult.ok() : TeleportResult.fail("spotteddog.teleport.failed.generic");
             }
             case "respawn" -> {
                 // 获取重生点（BlockPos 需要添加 0.5 偏移，保持玩家当前朝向）
                 var respawn = player.getRespawn();
                 if (respawn == null || respawn.respawnData() == null) {
-                    yield TeleportResult.fail("No respawn point set");
+                    yield TeleportResult.fail("spotteddog.respawn.not.found");
                 }
                 BlockPos pos = respawn.respawnData().getPos();
                 yield teleportTo(player, World.OVERWORLD, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, yaw, pitch) ?
-                        TeleportResult.ok() : TeleportResult.fail("Teleport failed");
+                        TeleportResult.ok() : TeleportResult.fail("spotteddog.teleport.failed.generic");
             }
             case "death" -> {
                 // 获取死亡点（BlockPos 需要添加 0.5 偏移，保持玩家当前朝向）
                 var deathPosOpt = player.getLastDeathPos();
                 if (deathPosOpt.isEmpty()) {
-                    yield TeleportResult.fail("No death point recorded");
+                    yield TeleportResult.fail("spotteddog.death.not.found");
                 }
                 GlobalPos deathPos = deathPosOpt.get();
                 BlockPos pos = deathPos.pos();
                 // GlobalPos.dimension() 直接返回 RegistryKey<World>
                 yield teleportTo(player, deathPos.dimension(), pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, yaw, pitch) ?
-                        TeleportResult.ok() : TeleportResult.fail("Teleport failed");
+                        TeleportResult.ok() : TeleportResult.fail("spotteddog.teleport.failed.generic");
             }
             case "spot" -> {
                 // spot 类型使用客户端发送的坐标（玩家坐标，无需偏移）
@@ -156,9 +157,9 @@ public class TeleportRequestHandler {
                 String dimension = payload.dimension();
                 RegistryKey<World> worldKey = getWorldKey(dimension);
                 yield teleportTo(player, worldKey, x, y, z, yaw, pitch) ?
-                        TeleportResult.ok() : TeleportResult.fail("Teleport failed");
+                        TeleportResult.ok() : TeleportResult.fail("spotteddog.teleport.failed.generic");
             }
-            default -> TeleportResult.fail("Unknown teleport type: " + type);
+            default -> TeleportResult.fail("spotteddog.teleport.unknown.type");
         };
     }
 

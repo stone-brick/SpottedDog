@@ -26,13 +26,13 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
         MinecraftClient client = MinecraftClient.getInstance();
         MinecraftServer server = client.getServer();
         if (server == null) {
-            player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 传送失败：无法获取服务器"), false);
+            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.server"), false);
             return;
         }
 
         ServerPlayerEntity serverPlayer = getServerPlayer(server, player);
         if (serverPlayer == null) {
-            player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 传送失败：无法获取玩家"), false);
+            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.player"), false);
             return;
         }
 
@@ -40,7 +40,7 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
         RegistryKey<World> targetKey = getWorldKey(spot.getDimension());
         ServerWorld targetWorld = server.getWorld(targetKey);
         if (targetWorld == null) {
-            player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 传送失败：无法获取目标世界"), false);
+            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.world"), false);
             return;
         }
 
@@ -66,13 +66,13 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
         MinecraftClient client = MinecraftClient.getInstance();
         MinecraftServer server = client.getServer();
         if (server == null) {
-            player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 传送失败：无法获取服务器"), false);
+            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.server"), false);
             return;
         }
 
         ServerPlayerEntity serverPlayer = getServerPlayer(server, player);
         if (serverPlayer == null) {
-            player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 传送失败：无法获取玩家"), false);
+            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.player"), false);
             return;
         }
 
@@ -88,19 +88,19 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
         MinecraftClient client = MinecraftClient.getInstance();
         MinecraftServer server = client.getServer();
         if (server == null) {
-            player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 传送失败：无法获取服务器"), false);
+            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.server"), false);
             return;
         }
 
         ServerPlayerEntity serverPlayer = getServerPlayer(server, player);
         if (serverPlayer == null) {
-            player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 传送失败：无法获取玩家"), false);
+            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.player"), false);
             return;
         }
 
         Optional<GlobalPos> deathPosOpt = serverPlayer.getLastDeathPos();
         if (deathPosOpt.isEmpty()) {
-            player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 未找到死亡点记录"), false);
+            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.death.not.found"), false);
             return;
         }
 
@@ -112,7 +112,7 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
         RegistryKey<World> targetKey = getWorldKey(dimension);
         ServerWorld targetWorld = server.getWorld(targetKey);
         if (targetWorld == null) {
-            player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 传送失败：无法获取目标世界"), false);
+            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.world"), false);
             return;
         }
 
@@ -125,13 +125,20 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
     public boolean teleportToRespawn(ClientPlayerEntity player) {
         MinecraftClient client = MinecraftClient.getInstance();
         MinecraftServer server = client.getServer();
-        if (server == null) return false;
+        if (server == null) {
+            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.server"), false);
+            return false;
+        }
 
         ServerPlayerEntity serverPlayer = getServerPlayer(server, player);
-        if (serverPlayer == null) return false;
+        if (serverPlayer == null) {
+            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.player"), false);
+            return false;
+        }
 
         var respawn = serverPlayer.getRespawn();
         if (respawn == null || respawn.respawnData() == null) {
+            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.respawn.not.found"), false);
             return false;
         }
 

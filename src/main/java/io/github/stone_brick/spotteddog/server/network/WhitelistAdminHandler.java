@@ -32,7 +32,7 @@ public class WhitelistAdminHandler {
 
             // 验证是否是 OP
             if (!PermissionManager.hasAdminPermission(player)) {
-                player.sendMessage(Text.literal("[SpottedDog] 权限不足，需要 OP 权限"));
+                player.sendMessage(Text.translatable("spotteddog.whitelist.permission.denied"));
                 return;
             }
 
@@ -44,26 +44,26 @@ public class WhitelistAdminHandler {
             UUID targetUuid = WhitelistManager.findOnlinePlayerUuid(server, playerName);
 
             if (targetUuid == null) {
-                player.sendMessage(Text.literal("[SpottedDog] 找不到在线玩家: " + playerName));
+                player.sendMessage(Text.translatable("spotteddog.whitelist.player.not.found", playerName));
                 return;
             }
 
             // 1. 禁止 OP 将自己添加到白名单
             if (add && targetUuid.equals(player.getUuid())) {
-                player.sendMessage(Text.literal("[SpottedDog] 不能将自己添加到白名单"));
+                player.sendMessage(Text.translatable("spotteddog.whitelist.cannot.add.self"));
                 return;
             }
 
             // 2. 禁止 OP 将自己从白名单移除
             if (!add && targetUuid.equals(player.getUuid())) {
-                player.sendMessage(Text.literal("[SpottedDog] 不能从白名单中移除自己"));
+                player.sendMessage(Text.translatable("spotteddog.whitelist.cannot.remove.self"));
                 return;
             }
 
             // 3. 禁止修改其他 OP 的白名单状态
             ServerPlayerEntity targetPlayer = server.getPlayerManager().getPlayer(playerName);
             if (targetPlayer != null && PermissionManager.hasAdminPermission(targetPlayer) && !targetUuid.equals(player.getUuid())) {
-                player.sendMessage(Text.literal("[SpottedDog] 不能修改其他 OP 的白名单状态"));
+                player.sendMessage(Text.translatable("spotteddog.whitelist.cannot.modify.op"));
                 return;
             }
 
@@ -71,29 +71,29 @@ public class WhitelistAdminHandler {
             if (add) {
                 boolean added = WhitelistManager.addPlayerToWhitelist(targetUuid, playerName, type);
                 if (added) {
-                    player.sendMessage(Text.literal("[SpottedDog] 已将 " + playerName + " 添加到 " + getTypeName(type) + " 白名单"));
+                    player.sendMessage(Text.translatable("spotteddog.whitelist.added.success", playerName, getTypeNameKey(type)));
                 } else {
-                    player.sendMessage(Text.literal("[SpottedDog] " + playerName + " 已在白名单中（已更新名称）"));
+                    player.sendMessage(Text.translatable("spotteddog.whitelist.already.in", playerName));
                 }
             } else {
                 boolean removed = WhitelistManager.removePlayerFromWhitelist(targetUuid, type);
                 if (removed) {
-                    player.sendMessage(Text.literal("[SpottedDog] 已将 " + playerName + " 从 " + getTypeName(type) + " 白名单移除"));
+                    player.sendMessage(Text.translatable("spotteddog.whitelist.removed.success", playerName, getTypeNameKey(type)));
                 } else {
-                    player.sendMessage(Text.literal("[SpottedDog] " + playerName + " 不在白名单中"));
+                    player.sendMessage(Text.translatable("spotteddog.whitelist.not.in", playerName));
                 }
             }
         });
     }
 
     /**
-     * 获取白名单类型的中文名称。
+     * 获取白名单类型的本地化键名。
      */
-    private static String getTypeName(WhitelistManager.WhitelistType type) {
+    private static String getTypeNameKey(WhitelistManager.WhitelistType type) {
         return switch (type) {
-            case TELEPORT -> "传送";
-            case PUBLIC_SPOT -> "公开 Spot";
-            case PUBLIC_SPOT_TELEPORT -> "公开 Spot 传送";
+            case TELEPORT -> "spotteddog.whitelist.type.teleport";
+            case PUBLIC_SPOT -> "spotteddog.whitelist.type.public";
+            case PUBLIC_SPOT_TELEPORT -> "spotteddog.whitelist.type.publictp";
         };
     }
 }

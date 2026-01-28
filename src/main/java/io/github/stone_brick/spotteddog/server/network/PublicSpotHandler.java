@@ -15,6 +15,7 @@ import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 
@@ -59,7 +60,7 @@ public class PublicSpotHandler {
             if (!PermissionManager.canManagePublicSpots(player)) {
                 String messageType = "publish".equals(payload.action()) ? "public" : "unpublic";
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                        messageType, payload.spotName(), "No permission"));
+                        messageType, payload.spotName(), "spotteddog.permission.denied"));
                 return;
             }
 
@@ -68,7 +69,7 @@ public class PublicSpotHandler {
                 int remaining = CooldownManager.getPublicSpotRemainingCooldown(player);
                 String messageType = "publish".equals(payload.action()) ? "public" : "unpublic";
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                        messageType, payload.spotName(), "冷却中，请等待 " + remaining + " 秒"));
+                        messageType, payload.spotName(), Text.translatable("spotteddog.cooldown.message", remaining).getString()));
                 return;
             }
 
@@ -76,7 +77,7 @@ public class PublicSpotHandler {
             if (!CooldownManager.tryIncrementPublicSpotGlobalCount()) {
                 String messageType = "publish".equals(payload.action()) ? "public" : "unpublic";
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                        messageType, payload.spotName(), "服务器繁忙，请稍后再试"));
+                        messageType, payload.spotName(), "spotteddog.server.busy"));
                 return;
             }
 
@@ -85,7 +86,7 @@ public class PublicSpotHandler {
                     // 验证名称长度
                     if (payload.spotName().length() > MAX_NAME_LENGTH) {
                         ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                                "public", payload.spotName(), "Spot 名称超过最大长度"));
+                                "public", payload.spotName(), "spotteddog.spot.name.too.long"));
                         return;
                     }
 
@@ -102,14 +103,14 @@ public class PublicSpotHandler {
                                 "public", payload.spotName()));
                     } else {
                         ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                                "public", payload.spotName(), "Spot 已公开或名称重复"));
+                                "public", payload.spotName(), "spotteddog.public.spot.duplicate"));
                     }
                 }
                 case "unpublish" -> {
                     // 验证名称长度
                     if (payload.spotName().length() > MAX_NAME_LENGTH) {
                         ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                                "unpublic", payload.spotName(), "Spot 名称超过最大长度"));
+                                "unpublic", payload.spotName(), "spotteddog.spot.name.too.long"));
                         return;
                     }
 
@@ -123,7 +124,7 @@ public class PublicSpotHandler {
                                 "unpublic", payload.spotName()));
                     } else {
                         ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                                "unpublic", payload.spotName(), "未找到公开的 Spot"));
+                                "unpublic", payload.spotName(), "spotteddog.public.spot.not.found"));
                     }
                 }
             }
@@ -165,7 +166,7 @@ public class PublicSpotHandler {
             // 验证权限
             if (!PermissionManager.canTeleportToPublicSpot(player)) {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                        "public_tp", payload.fullName(), "No permission"));
+                        "public_tp", payload.fullName(), "spotteddog.permission.denied"));
                 return;
             }
 
@@ -173,14 +174,14 @@ public class PublicSpotHandler {
             if (CooldownManager.isInCooldown(player)) {
                 int remaining = CooldownManager.getRemainingCooldown(player);
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                        "public_tp", payload.fullName(), "冷却中，请等待 " + remaining + " 秒"));
+                        "public_tp", payload.fullName(), Text.translatable("spotteddog.cooldown.message", remaining).getString()));
                 return;
             }
 
             // 验证全局速率限制
             if (!CooldownManager.tryIncrementGlobalCount()) {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                        "public_tp", payload.fullName(), "服务器繁忙，请稍后再试"));
+                        "public_tp", payload.fullName(), "spotteddog.server.busy"));
                 return;
             }
 
@@ -188,14 +189,14 @@ public class PublicSpotHandler {
             PublicSpotManager.PublicSpotName name = PublicSpotManager.parsePublicSpotName(payload.fullName());
             if (name == null) {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                        "public_tp", payload.fullName(), "无效的公开 Spot 名称格式"));
+                        "public_tp", payload.fullName(), "spotteddog.public.spot.invalid.name"));
                 return;
             }
 
             // 验证 spotName 长度（玩家名称是附加信息，不计入长度限制）
             if (name.spotName().length() > MAX_NAME_LENGTH) {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                        "public_tp", payload.fullName(), "Spot 名称超过最大长度"));
+                        "public_tp", payload.fullName(), "spotteddog.spot.name.too.long"));
                 return;
             }
 
@@ -205,7 +206,7 @@ public class PublicSpotHandler {
 
             if (spotOpt.isEmpty()) {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                        "public_tp", payload.fullName(), "未找到公开的 Spot"));
+                        "public_tp", payload.fullName(), "spotteddog.public.spot.not.found"));
                 return;
             }
 
@@ -216,7 +217,7 @@ public class PublicSpotHandler {
             ServerWorld targetWorld = server.getWorld(worldKey);
             if (targetWorld == null) {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                        "public_tp", payload.fullName(), "无法访问目标世界"));
+                        "public_tp", payload.fullName(), "spotteddog.world.unreachable"));
                 return;
             }
 
@@ -227,7 +228,7 @@ public class PublicSpotHandler {
                         "public_tp", payload.fullName()));
             } else {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(
-                        "public_tp", payload.fullName(), "传送失败"));
+                        "public_tp", payload.fullName(), "spotteddog.teleport.failed.generic"));
             }
         });
 
@@ -250,7 +251,7 @@ public class PublicSpotHandler {
                             payload.x(), payload.y(), payload.z(),
                             payload.yaw(), payload.pitch(), payload.dimension());
                     if (success) {
-                        broadcastMessage(server, "[SpottedDog] 玩家 " + playerName + " 更新的公开 Spot: " + payload.oldName());
+                        broadcastMessage(server, Text.translatable("spotteddog.public.spot.updated.broadcast", playerName, payload.oldName()).getString());
                     }
                 }
                 case "rename" -> {
@@ -258,7 +259,7 @@ public class PublicSpotHandler {
                     boolean success = PublicSpotManager.getInstance().renamePublicSpot(
                             playerName, payload.oldName(), payload.newName());
                     if (success) {
-                        broadcastMessage(server, "[SpottedDog] 玩家 " + playerName + " 将公开 Spot 重命名: " + payload.oldName() + " -> " + payload.newName());
+                        broadcastMessage(server, Text.translatable("spotteddog.public.spot.renamed.broadcast", playerName, payload.oldName(), payload.newName()).getString());
                     }
                 }
             }

@@ -98,8 +98,12 @@ public final class WhitelistAdminCommand {
     /**
      * 发送反馈消息。
      */
-    private static void sendFeedback(FabricClientCommandSource source, String message) {
-        source.sendFeedback(Text.literal(message));
+    private static void sendFeedback(FabricClientCommandSource source, String key) {
+        source.sendFeedback(Text.translatable(key));
+    }
+
+    private static void sendFeedback(FabricClientCommandSource source, String key, Object... args) {
+        source.sendFeedback(Text.translatable(key, args));
     }
 
     /**
@@ -110,7 +114,7 @@ public final class WhitelistAdminCommand {
         // 发送请求给服务端处理
         WhitelistAdminHandler.sendWhitelistAction(playerName, type, true);
 
-        sendFeedback(source, "[SpottedDog] 已提交白名单操作请求");
+        sendFeedback(source, "spotteddog.whitelist.submitted");
 
         return Command.SINGLE_SUCCESS;
     }
@@ -123,7 +127,7 @@ public final class WhitelistAdminCommand {
         // 发送请求给服务端处理
         WhitelistAdminHandler.sendWhitelistAction(playerName, type, false);
 
-        sendFeedback(source, "[SpottedDog] 已提交白名单操作请求");
+        sendFeedback(source, "spotteddog.whitelist.submitted");
 
         return Command.SINGLE_SUCCESS;
     }
@@ -134,29 +138,29 @@ public final class WhitelistAdminCommand {
     private static int listWhitelist(WhitelistManager.WhitelistType type, FabricClientCommandSource source) {
         List<WhitelistManager.WhitelistEntry> entries = WhitelistManager.getAllEntries(type);
 
-        source.sendFeedback(Text.literal("[SpottedDog] " + getTypeName(type) + " 白名单:"));
+        source.sendFeedback(Text.translatable("spotteddog.whitelist.header", getTypeName(type)));
 
         if (entries.isEmpty()) {
-            source.sendFeedback(Text.literal("  (空)"));
+            source.sendFeedback(Text.translatable("spotteddog.whitelist.empty"));
         } else {
             for (WhitelistManager.WhitelistEntry entry : entries) {
-                source.sendFeedback(Text.literal("  - " + entry.name + " (" + entry.uuid + ")"));
+                source.sendFeedback(Text.translatable("spotteddog.whitelist.entry", entry.name, entry.uuid));
             }
         }
 
-        source.sendFeedback(Text.literal("共 " + entries.size() + " 名玩家"));
+        source.sendFeedback(Text.translatable("spotteddog.whitelist.total", entries.size()));
 
         return Command.SINGLE_SUCCESS;
     }
 
     /**
-     * 获取白名单类型的中文名称。
+     * 获取白名单类型的本地化键名。
      */
     private static String getTypeName(WhitelistManager.WhitelistType type) {
         return switch (type) {
-            case TELEPORT -> "传送";
-            case PUBLIC_SPOT -> "公开 Spot";
-            case PUBLIC_SPOT_TELEPORT -> "公开 Spot 传送";
+            case TELEPORT -> "spotteddog.whitelist.type.teleport";
+            case PUBLIC_SPOT -> "spotteddog.whitelist.type.public";
+            case PUBLIC_SPOT_TELEPORT -> "spotteddog.whitelist.type.publictp";
         };
     }
 

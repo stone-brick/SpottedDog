@@ -92,9 +92,9 @@ public class PublicSpotListHandler {
 
             // 显示默认消息
             if (publicSpots.isEmpty()) {
-                player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 当前没有公开的 Spot"), false);
+                player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.public.none"), false);
             } else {
-                player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 公开 Spot 列表已更新（" + publicSpots.size() + " 个）"), false);
+                player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.public.list.updated", publicSpots.size()), false);
             }
         });
     }

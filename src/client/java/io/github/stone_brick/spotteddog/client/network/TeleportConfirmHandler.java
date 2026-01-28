@@ -5,6 +5,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.minecraft.text.Text;
 
 /**
  * 客户端传送确认消息处理器。
@@ -30,31 +31,39 @@ public class TeleportConfirmHandler {
         // 注册接收处理器
         ClientPlayNetworking.registerGlobalReceiver(TeleportConfirmS2CPayload.ID, (payload, context) -> {
             var player = context.player();
-            if (player == null) return;
 
             if (payload.success()) {
                 // 传送成功不显示消息
                 if ("public".equals(payload.type())) {
                     // 公开 Spot 成功
-                    player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 已公开 Spot: " + payload.targetName()), false);
+                    player.sendMessage(Text.translatable("spotteddog.public.published", payload.targetName()), false);
                 } else if ("unpublic".equals(payload.type())) {
                     // 取消公开 Spot 成功
-                    player.sendMessage(net.minecraft.text.Text.literal("[SpottedDog] 已取消公开 Spot: " + payload.targetName()), false);
+                    player.sendMessage(Text.translatable("spotteddog.public.unpublished", payload.targetName()), false);
                 }
                 return;
             } else {
                 // 失败时显示错误消息
-                String message = "[SpottedDog] " + getActionMessage(payload.type()) + "失败: " + payload.message();
-                player.sendMessage(net.minecraft.text.Text.literal(message), false);
+                String message = payload.message();
+                Text messageText;
+                if (message != null && message.startsWith("spotteddog.")) {
+                    // 翻译键，使用客户端语言翻译
+                    messageText = Text.translatable(message);
+                } else {
+                    // 普通错误消息，直接显示
+                    messageText = Text.literal(message != null ? message : "");
+                }
+                player.sendMessage(Text.translatable("spotteddog.teleport.failed.message",
+                        Text.translatable(getActionMessageKey(payload.type())), messageText), false);
             }
         });
     }
 
-    private static String getActionMessage(String type) {
+    private static String getActionMessageKey(String type) {
         return switch (type) {
-            case "public" -> "公开 Spot";
-            case "unpublic" -> "取消公开 Spot";
-            default -> "传送";
+            case "public" -> "spotteddog.action.publish";
+            case "unpublic" -> "spotteddog.action.unpublish";
+            default -> "spotteddog.action.teleport"; // spot, spawn, respawn, death, public_tp 等传送操作
         };
     }
 }
