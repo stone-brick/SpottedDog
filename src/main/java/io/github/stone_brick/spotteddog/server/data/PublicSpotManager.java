@@ -15,9 +15,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import net.minecraft.util.WorldSavePath;
+
 /**
  * 服务端公开 Spot 管理类。
  * 负责公开 Spot 的存储、查询和管理。
+ *
+ * 数据路径: data/multiplayer/<服务器地址>/public_spots.json
  */
 public class PublicSpotManager {
 
@@ -47,18 +51,48 @@ public class PublicSpotManager {
     }
 
     /**
-     * 获取服务端数据目录。
+     * 获取服务端数据目录根路径。
      */
-    private Path getDataDirectory() {
-        Path configDir = FabricLoader.getInstance().getConfigDir();
-        return configDir.resolve("spotteddog");
+    private Path getDataRootDirectory() {
+        return FabricLoader.getInstance().getConfigDir().resolve("spotteddog").resolve("data");
+    }
+
+    /**
+     * 获取当前服务器的数据目录。
+     */
+    private Path getServerDataDirectory() {
+        String serverId = getServerIdentifier();
+        String safeName = safeFileName(serverId);
+        return getDataRootDirectory().resolve("multiplayer").resolve(safeName);
+    }
+
+    /**
+     * 获取当前服务器的标识符。
+     */
+    private String getServerIdentifier() {
+        // 使用 savePath 作为服务器标识符
+        if (server != null) {
+            Path savePath = server.getSavePath(WorldSavePath.ROOT).getParent();
+            if (savePath != null) {
+                return savePath.getFileName().toString();
+            }
+        }
+        return "server"; // 默认标识符
+    }
+
+    /**
+     * 将服务器地址转换为安全的文件夹名称。
+     */
+    private String safeFileName(String name) {
+        // 替换非法字符为下划线
+        return name.replaceAll("[\\\\/:*?\"<>|]", "_");
     }
 
     /**
      * 获取公开 Spot 文件路径。
      */
     private Path getPublicSpotsFile() {
-        return getDataDirectory().resolve(PUBLIC_SPOTS_FILE);
+        return getServerDataDirectory().resolve(PUBLIC_SPOTS_FILE);
     }
 
     /**
@@ -85,7 +119,7 @@ public class PublicSpotManager {
      */
     private synchronized void savePublicSpots() {
         try {
-            Files.createDirectories(getDataDirectory());
+            Files.createDirectories(getPublicSpotsFile().getParent());
             String json = GSON.toJson(publicSpots);
             Files.writeString(getPublicSpotsFile(), json);
         } catch (IOException e) {

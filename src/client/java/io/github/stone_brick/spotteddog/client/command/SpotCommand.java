@@ -45,7 +45,7 @@ public class SpotCommand {
         }
 
         // 添加用户保存的 spot 名称
-        List<Spot> spots = dataManager.getAllSpots(getWorldIdentifier());
+        List<Spot> spots = dataManager.getAllSpots();
         for (Spot spot : spots) {
             String name = spot.getName();
             if (name.toLowerCase().startsWith(remaining)) {
@@ -85,6 +85,11 @@ public class SpotCommand {
     }
 
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
+        // 初始化当前世界数据
+        String worldId = getWorldIdentifier();
+        String worldName = getCurrentWorldName();
+        dataManager.setCurrentWorld(worldId, worldName);
+
         // 在 /spot 后输入内容时触发公开 Spot 更新（仅触发，不添加建议）
         dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
                 .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("trigger", StringArgumentType.string())
@@ -176,7 +181,7 @@ public class SpotCommand {
     // 为 spot 名称提供自动补全
     private static SuggestionProvider<FabricClientCommandSource> spotNameSuggestions() {
         return (context, builder) -> {
-            List<Spot> spots = dataManager.getAllSpots(getWorldIdentifier());
+            List<Spot> spots = dataManager.getAllSpots();
             for (Spot spot : spots) {
                 String name = spot.getName();
                 if (name.toLowerCase().startsWith(builder.getRemaining().toLowerCase())) {
@@ -270,9 +275,8 @@ public class SpotCommand {
             return Command.SINGLE_SUCCESS;
         }
 
-        String worldId = getWorldIdentifier();
         if (dataManager.addSpot(name, player.getX(), player.getY(), player.getZ(),
-                player.getYaw(), player.getPitch(), getCurrentDimension(), getCurrentWorldName(), worldId)) {
+                player.getYaw(), player.getPitch(), getCurrentDimension())) {
             sendFeedback("spotteddog.spot.added", name);
         } else {
             sendFeedback("spotteddog.spot.already.exists", name);
@@ -281,8 +285,7 @@ public class SpotCommand {
     }
 
     private static int removeSpot(String name) {
-        String worldId = getWorldIdentifier();
-        if (dataManager.removeSpot(name, worldId)) {
+        if (dataManager.removeSpot(name)) {
             sendFeedback("spotteddog.spot.deleted", name);
         } else {
             sendFeedback("spotteddog.spot.not.found", name);
@@ -294,9 +297,8 @@ public class SpotCommand {
         ClientPlayerEntity player = getPlayer();
         if (player == null) return 0;
 
-        String worldId = getWorldIdentifier();
         if (dataManager.updateSpotPosition(name, player.getX(), player.getY(), player.getZ(),
-                player.getYaw(), player.getPitch(), getCurrentDimension(), getCurrentWorldName(), worldId)) {
+                player.getYaw(), player.getPitch(), getCurrentDimension())) {
             sendFeedback("spotteddog.spot.updated", name);
 
             // 多人模式下同步公开 Spot 的更新
@@ -327,7 +329,6 @@ public class SpotCommand {
             return Command.SINGLE_SUCCESS;
         }
 
-        String worldId = getWorldIdentifier();
         // 检查 oldName 是否已公开（自动补全时已刷新缓存）
         boolean wasPublic = false;
         if (!MinecraftClient.getInstance().isInSingleplayer()) {
@@ -338,7 +339,7 @@ public class SpotCommand {
             }
         }
 
-        if (dataManager.renameSpot(oldName, newName, worldId)) {
+        if (dataManager.renameSpot(oldName, newName)) {
             sendFeedback("spotteddog.spot.renamed", oldName, newName);
 
             // 多人模式下同步公开 Spot 的重命名
@@ -389,8 +390,7 @@ public class SpotCommand {
         }
 
         // 查找用户保存的 spot
-        String worldId = getWorldIdentifier();
-        Optional<Spot> spot = dataManager.getSpot(target, worldId);
+        Optional<Spot> spot = dataManager.getSpot(target);
         if (spot.isPresent()) {
             TeleportHandler.teleportToSpot(player, spot.get());
         } else {
@@ -400,8 +400,7 @@ public class SpotCommand {
     }
 
     private static int listSpots() {
-        String worldId = getWorldIdentifier();
-        List<Spot> spots = dataManager.getAllSpots(worldId);
+        List<Spot> spots = dataManager.getAllSpots();
         if (spots.isEmpty()) {
             sendFeedback("spotteddog.spot.list.empty");
         } else {
@@ -470,8 +469,7 @@ public class SpotCommand {
         }
 
         // 检查 Spot 是否存在
-        String worldId = getWorldIdentifier();
-        Optional<Spot> spot = dataManager.getSpot(name, worldId);
+        Optional<Spot> spot = dataManager.getSpot(name);
         if (spot.isEmpty()) {
             sendFeedback("spotteddog.spot.not.found", name);
             return Command.SINGLE_SUCCESS;

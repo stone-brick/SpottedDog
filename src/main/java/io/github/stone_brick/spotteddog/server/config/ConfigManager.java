@@ -16,7 +16,7 @@ import java.nio.file.Path;
 public class ConfigManager {
 
     private static final String CONFIG_FILE_NAME = "spotteddog_config.json";
-    private static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve("spotteddog");
+    private static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve("spotteddog").resolve("config");
     private static final Path CONFIG_FILE = CONFIG_DIR.resolve(CONFIG_FILE_NAME);
 
     private static Config instance;
