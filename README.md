@@ -12,6 +12,7 @@
 - **服务端安全优化**：传送冷却时间、全局速率限制、公开列表请求冷却
 - **公开 Spot**（多人模式）：将你的 Spot 公开给其他玩家，其他玩家可直接传送到公开 Spot
 - **白名单权限**（OP）：细粒度控制普通玩家的功能权限
+- **本地化支持**：支持中文和英文，根据游戏语言设置自动切换
 - **简洁消息**：传送成功无打扰提示，失败时显示错误信息
 
 ## 安装方法
@@ -133,13 +134,23 @@ src/
 
 ### 标记点数据
 
-标记点数据保存在 `config/spotteddog/` 目录下：
-- `spots_singleplayer.json` - 单人模式存档的 Spot
-- `spots_multiplayer.json` - 多人模式服务器的 Spot
+标记点数据保存在 `spotteddog/data/` 目录下：
+
+```
+spotteddog/
+├── data/
+│   ├── singleplayer/
+│   │   └── <存档文件夹名>/
+│   │       └── spots.json              # 单人模式 Spot
+│   │
+│   └── multiplayer/
+│       └── <服务器文件夹名>/
+│           └── spots.json              # 玩家自己的 Spot
+```
 
 ### 服务端配置
 
-服务端配置文件：`config/spotteddog/spotteddog_config.json`
+服务端配置文件：`spotteddog/config/spotteddog_config.json`
 ```json
 {
   "teleport_cooldown_seconds": 1,
@@ -166,11 +177,11 @@ src/
 
 ### 公开 Spot 数据
 
-公开 Spot 数据保存在服务端 `config/spotteddog/public_spots.json` 文件中。
+公开 Spot 数据保存在服务端 `spotteddog/data/multiplayer/<服务器>/public_spots.json` 文件中。
 
 ### 白名单数据
 
-白名单数据保存在 `config/spotteddog/` 目录下：
+白名单数据保存在服务端 `spotteddog/data/multiplayer/<服务器>/` 目录下：
 - `teleport_whitelist.json` - 传送白名单
 - `public_spot_whitelist.json` - 公开 Spot 白名单
 - `public_spot_teleport_whitelist.json` - 公开 Spot 传送白名单
@@ -189,6 +200,7 @@ src/
 
 | 版本 | 变更 |
 |------|------|
+| 5.2.0-SNAPSHOT | 本地化支持（中英文）、配置文件结构重构 |
 | 5.1.0-SNAPSHOT | 白名单权限管理功能、OP 自我保护限制 |
 | 5.0.0-SNAPSHOT | 权限管理、独立的公开 Spot 冷却、传送到公开 Spot 权限 |
 | 4.3.0-SNAPSHOT | 中文支持、列表预加载、服务端冷却限制 |
