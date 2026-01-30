@@ -419,11 +419,67 @@ public class SpotCommand {
             sendFeedback("spotteddog.spot.list.empty");
         } else {
             sendFeedback("spotteddog.spot.list.header");
+            sendTableHeader();
             for (Spot spot : spots) {
-                sendFeedback("spotteddog.spot.list.item", spot.getName(), spot.getDimension());
+                sendTableRow(spot);
             }
         }
         return Command.SINGLE_SUCCESS;
+    }
+
+    private static final int COL_NAME = 12;
+    private static final int COL_DIM = 8;
+    private static final int COL_COORD = 18;
+    private static final int COL_VIS = 6;
+
+    private static void sendTableHeader() {
+        String header = String.format("§l%-"+COL_NAME+"s %-"+COL_DIM+"s %-"+COL_COORD+"s %-"+COL_VIS+"s",
+                Text.translatable("spotteddog.list.header.name").getString(),
+                Text.translatable("spotteddog.list.header.dimension").getString(),
+                Text.translatable("spotteddog.list.header.coord").getString(),
+                Text.translatable("spotteddog.list.header.visibility").getString());
+        sendFeedback(header);
+
+        String separator = "§7" + "-".repeat(COL_NAME + COL_DIM + COL_COORD + COL_VIS + 3);
+        sendFeedback(separator);
+    }
+
+    private static void sendTableRow(Spot spot) {
+        // 可见性（仅多人模式）
+        String visibility;
+        if (!MinecraftClient.getInstance().isInSingleplayer()) {
+            String playerName = MinecraftClient.getInstance().player.getName().getString();
+            if (PublicSpotListHandler.isSpotPublic(spot.getName(), playerName)) {
+                visibility = "§a" + Text.translatable("spotteddog.visibility.public").getString();
+            } else {
+                visibility = "§7" + Text.translatable("spotteddog.visibility.private").getString();
+            }
+        } else {
+            visibility = "§7" + Text.translatable("spotteddog.visibility.private").getString();
+        }
+
+        // 坐标
+        String coord = String.format("[%.0f, %.0f, %.0f]", spot.getX(), spot.getY(), spot.getZ());
+
+        String row = String.format("%-"+COL_NAME+"s §b%-"+COL_DIM+"s §f%-"+COL_COORD+"s %-"+COL_VIS+"s",
+                spot.getName(),
+                formatDimension(spot.getDimension()),
+                coord,
+                visibility);
+        sendFeedback(row);
+    }
+
+    private static String formatDimension(String dimension) {
+        String key = switch (dimension) {
+            case "minecraft:overworld", "overworld" -> "spotteddog.dimension.overworld";
+            case "minecraft:the_nether", "nether" -> "spotteddog.dimension.nether";
+            case "minecraft:the_end", "the_end", "end" -> "spotteddog.dimension.the_end";
+            default -> null;
+        };
+        if (key != null) {
+            return Text.translatable(key).getString();
+        }
+        return dimension;
     }
 
     private static int debugUserData() {

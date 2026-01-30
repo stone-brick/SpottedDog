@@ -66,5 +66,14 @@
   "spotteddog.log.permission.denied": "§cYou don't have permission to perform this action",
   "spotteddog.log.list.header": "§aRecent %d teleport records:",
   "spotteddog.log.empty": "§7No teleport records",
-  "spotteddog.log.cleared": "§aAll teleport records cleared"
+  "spotteddog.log.cleared": "§aAll teleport records cleared",
+  "spotteddog.list.header.name": "Name",
+  "spotteddog.list.header.dimension": "Dim",
+  "spotteddog.list.header.coord": "Coord",
+  "spotteddog.list.header.visibility": "Visible",
+  "spotteddog.visibility.public": "Public",
+  "spotteddog.visibility.private": "Private",
+  "spotteddog.dimension.overworld": "Overworld",
+  "spotteddog.dimension.nether": "Nether",
+  "spotteddog.dimension.the_end": "The End"
 }

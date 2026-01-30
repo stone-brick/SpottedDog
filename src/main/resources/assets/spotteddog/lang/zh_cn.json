@@ -66,5 +66,14 @@
   "spotteddog.log.permission.denied": "§c你没有权限执行此操作",
   "spotteddog.log.list.header": "§a最近的 %d 条传送记录:",
   "spotteddog.log.empty": "§7暂无传送记录",
-  "spotteddog.log.cleared": "§a已清除所有传送记录"
+  "spotteddog.log.cleared": "§a已清除所有传送记录",
+  "spotteddog.list.header.name": "名称",
+  "spotteddog.list.header.dimension": "维度",
+  "spotteddog.list.header.coord": "坐标",
+  "spotteddog.list.header.visibility": "可见",
+  "spotteddog.visibility.public": "已公开",
+  "spotteddog.visibility.private": "私有",
+  "spotteddog.dimension.overworld": "主世界",
+  "spotteddog.dimension.nether": "下界",
+  "spotteddog.dimension.the_end": "末地"
 }
