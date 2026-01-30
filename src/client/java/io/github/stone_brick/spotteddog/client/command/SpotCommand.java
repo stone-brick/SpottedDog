@@ -433,14 +433,14 @@ public class SpotCommand {
     private static final int COL_VIS = 6;
 
     private static void sendTableHeader() {
-        String header = String.format("%-"+COL_NAME+"s %-"+COL_DIM+"s %-"+COL_COORD+"s %-"+COL_VIS+"s",
+        String header = String.format("|%-"+COL_NAME+"s|%-"+COL_DIM+"s|%-"+COL_COORD+"s|%-"+COL_VIS+"s|",
                 Text.translatable("spotteddog.list.header.name").getString(),
                 Text.translatable("spotteddog.list.header.dimension").getString(),
                 Text.translatable("spotteddog.list.header.coord").getString(),
                 Text.translatable("spotteddog.list.header.visibility").getString());
         sendFeedback(header);
 
-        String separator = "§7" + "-".repeat(COL_NAME + COL_DIM + COL_COORD + COL_VIS + 3);
+        String separator = "§7" + "-".repeat(COL_NAME + COL_DIM + COL_COORD + COL_VIS + 5);
         sendFeedback(separator);
     }
 
@@ -461,12 +461,18 @@ public class SpotCommand {
         // 坐标
         String coord = String.format("[%.0f, %.0f, %.0f]", spot.getX(), spot.getY(), spot.getZ());
 
-        String row = String.format("%-"+COL_NAME+"s §b%-"+COL_DIM+"s §f%-"+COL_COORD+"s %-"+COL_VIS+"s",
-                spot.getName(),
-                formatDimension(spot.getDimension()),
-                coord,
-                visibility);
+        String row = String.format("|%s|%s|%s|%s|",
+                truncate(spot.getName(), COL_NAME),
+                "§b" + truncate(formatDimension(spot.getDimension()), COL_DIM),
+                "§f" + truncate(coord, COL_COORD),
+                truncate(visibility, COL_VIS));
         sendFeedback(row);
+    }
+
+    private static String truncate(String text, int maxLength) {
+        if (text == null) return "";
+        if (text.length() <= maxLength) return text;
+        return text.substring(0, maxLength - 3) + "...";
     }
 
     private static String formatDimension(String dimension) {
