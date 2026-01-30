@@ -4,6 +4,7 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -31,7 +32,7 @@ public record PublicSpotListS2CPayload(
                     },
                     buf -> {
                         int size = buf.readInt();
-                        List<PublicSpotInfo> spots = new java.util.ArrayList<>();
+                        List<PublicSpotInfo> spots = new ArrayList<>();
                         for (int i = 0; i < size; i++) {
                             spots.add(new PublicSpotInfo(
                                     buf.readString(),

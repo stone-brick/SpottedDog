@@ -62,5 +62,9 @@
   "spotteddog.whitelist.added.success": "Added %s to %s whitelist",
   "spotteddog.whitelist.already.in": "%s is already in whitelist (name updated)",
   "spotteddog.whitelist.removed.success": "Removed %s from %s whitelist",
-  "spotteddog.whitelist.not.in": "%s is not in whitelist"
+  "spotteddog.whitelist.not.in": "%s is not in whitelist",
+  "spotteddog.log.permission.denied": "§cYou don't have permission to perform this action",
+  "spotteddog.log.list.header": "§aRecent %d teleport records:",
+  "spotteddog.log.empty": "§7No teleport records",
+  "spotteddog.log.cleared": "§aAll teleport records cleared"
 }

@@ -46,6 +46,12 @@ public class ConfigManager {
 
         @SerializedName("max_public_spot_requests_per_second")
         public int maxPublicSpotRequestsPerSecond = 10; // 每秒最大公开/取消公开请求数
+
+        @SerializedName("teleport_log_enabled")
+        public boolean teleportLogEnabled = false; // 是否启用传送日志
+
+        @SerializedName("teleport_log_max_entries")
+        public int teleportLogMaxEntries = 1000; // 日志最大保留条数
     }
 
     /**
@@ -158,5 +164,19 @@ public class ConfigManager {
      */
     public static Path getConfigPath() {
         return CONFIG_FILE;
+    }
+
+    /**
+     * 检查是否启用传送日志。
+     */
+    public static boolean isTeleportLogEnabled() {
+        return getConfig().teleportLogEnabled;
+    }
+
+    /**
+     * 获取日志最大保留条数。
+     */
+    public static int getTeleportLogMaxEntries() {
+        return getConfig().teleportLogMaxEntries;
     }
 }

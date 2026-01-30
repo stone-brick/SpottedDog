@@ -2,16 +2,20 @@ package io.github.stone_brick.spotteddog.client.command;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import io.github.stone_brick.spotteddog.client.data.PlayerDataManager;
 import io.github.stone_brick.spotteddog.client.data.Spot;
+import io.github.stone_brick.spotteddog.client.data.TeleportLogManager;
 import io.github.stone_brick.spotteddog.client.network.PublicSpotListHandler;
+import io.github.stone_brick.spotteddog.network.c2s.TeleportLogAdminC2SPayload;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ServerInfo;
@@ -176,6 +180,16 @@ public class SpotCommand {
                         .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("name", StringArgumentType.string())
                                 .suggests(myPublicSpotSuggestions())
                                 .executes(context -> unpublishSpot(getString(context, "name"))))));
+
+        // /spot log list [count] - 查看传送日志
+        dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
+                .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("log")
+                        .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("list")
+                                .executes(context -> listTeleportLogs(10))
+                                .then(RequiredArgumentBuilder.<FabricClientCommandSource, Integer>argument("count", IntegerArgumentType.integer(1, 100))
+                                        .executes(context -> listTeleportLogs(IntegerArgumentType.getInteger(context, "count")))))
+                        .then(LiteralArgumentBuilder.<FabricClientCommandSource>literal("clear")
+                                .executes(context -> clearTeleportLogs()))));
     }
 
     // 为 spot 名称提供自动补全
@@ -525,6 +539,51 @@ public class SpotCommand {
                     }
                 }
             });
+        }
+
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int listTeleportLogs(int count) {
+        ClientPlayerEntity player = getPlayer();
+        if (player == null) return 0;
+
+        if (MinecraftClient.getInstance().isInSingleplayer()) {
+            // 单人模式：直接从本地读取
+            TeleportLogManager logManager = TeleportLogManager.getInstance();
+            List<TeleportLogManager.ClientTeleportLog> logs = logManager.getRecentLogs(count);
+
+            player.sendMessage(Text.translatable("spotteddog.log.list.header", logs.size()), false);
+
+            if (logs.isEmpty()) {
+                player.sendMessage(Text.translatable("spotteddog.log.empty"), false);
+            } else {
+                for (var log : logs) {
+                    String spotInfo = log.spotName != null ? log.spotName : log.teleportType;
+                    String message = String.format("[%s] %s %s -> (%s, %.1f, %.1f, %.1f)",
+                            log.timestamp.substring(11, 19),
+                            log.playerName, spotInfo,
+                            log.targetDimension, log.targetX, log.targetY, log.targetZ);
+                    player.sendMessage(Text.literal(message), false);
+                }
+            }
+        } else {
+            // 多人模式：发送请求到服务端
+            ClientPlayNetworking.send(new TeleportLogAdminC2SPayload("list", count));
+        }
+
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int clearTeleportLogs() {
+        ClientPlayerEntity player = getPlayer();
+        if (player == null) return 0;
+
+        if (MinecraftClient.getInstance().isInSingleplayer()) {
+            TeleportLogManager.getInstance().clearLogs();
+            player.sendMessage(Text.translatable("spotteddog.log.cleared"), false);
+        } else {
+            ClientPlayNetworking.send(new TeleportLogAdminC2SPayload("clear", 0));
         }
 
         return Command.SINGLE_SUCCESS;

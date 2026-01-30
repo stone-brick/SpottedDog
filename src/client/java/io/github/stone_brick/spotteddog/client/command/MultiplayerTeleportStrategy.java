@@ -12,7 +12,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 
 import java.util.List;
-import java.util.UUID;
 import net.minecraft.util.WorldSavePath;
 
 /**

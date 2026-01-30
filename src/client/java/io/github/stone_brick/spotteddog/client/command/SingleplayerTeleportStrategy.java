@@ -1,6 +1,7 @@
 package io.github.stone_brick.spotteddog.client.command;
 
 import io.github.stone_brick.spotteddog.client.data.Spot;
+import io.github.stone_brick.spotteddog.client.data.TeleportLogManager;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
@@ -44,9 +45,20 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
             return;
         }
 
+        // 记录源位置
+        String sourceDim = player.getEntityWorld().getRegistryKey().getValue().toString();
+        double sourceX = player.getX();
+        double sourceY = player.getY();
+        double sourceZ = player.getZ();
+
         // 使用 teleport 方法进行跨维度传送，应用保存的 yaw/pitch
         serverPlayer.teleport(targetWorld, spot.getX(), spot.getY(), spot.getZ(),
             EnumSet.noneOf(PositionFlag.class), spot.getYaw(), spot.getPitch(), false);
+
+        // 记录日志
+        TeleportLogManager.getInstance().logTeleport("spot", spot.getName(),
+                sourceDim, sourceX, sourceY, sourceZ,
+                spot.getDimension(), spot.getX(), spot.getY(), spot.getZ());
     }
 
     private RegistryKey<World> getWorldKey(String dimension) {
@@ -78,9 +90,24 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
 
         // 使用 IntegratedServer.getSpawnPoint() 获取实际出生点坐标
         BlockPos spawnPos = server.getSpawnPoint().getPos();
+        double targetX = spawnPos.getX() + 0.5;
+        double targetY = spawnPos.getY();
+        double targetZ = spawnPos.getZ() + 0.5;
+
+        // 记录源位置
+        String sourceDim = player.getEntityWorld().getRegistryKey().getValue().toString();
+        double sourceX = player.getX();
+        double sourceY = player.getY();
+        double sourceZ = player.getZ();
+
         // 传送到主世界出生点（方块坐标需要添加 0.5 偏移，保持玩家当前朝向）
-        serverPlayer.teleport(server.getOverworld(), spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5,
+        serverPlayer.teleport(server.getOverworld(), targetX, targetY, targetZ,
                 EnumSet.noneOf(PositionFlag.class), player.getYaw(), player.getPitch(), false);
+
+        // 记录日志
+        TeleportLogManager.getInstance().logTeleport("spawn", null,
+                sourceDim, sourceX, sourceY, sourceZ,
+                "minecraft:overworld", targetX, targetY, targetZ);
     }
 
     @Override
@@ -107,6 +134,9 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
         GlobalPos deathPos = deathPosOpt.get();
         BlockPos pos = deathPos.pos();
         String dimension = deathPos.dimension().getValue().toString();
+        double targetX = pos.getX() + 0.5;
+        double targetY = pos.getY();
+        double targetZ = pos.getZ() + 0.5;
 
         // 获取目标世界
         RegistryKey<World> targetKey = getWorldKey(dimension);
@@ -116,9 +146,20 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
             return;
         }
 
+        // 记录源位置
+        String sourceDim = player.getEntityWorld().getRegistryKey().getValue().toString();
+        double sourceX = player.getX();
+        double sourceY = player.getY();
+        double sourceZ = player.getZ();
+
         // 传送到死亡点（方块坐标需要添加 0.5 偏移，保持玩家当前朝向）
-        serverPlayer.teleport(targetWorld, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5,
+        serverPlayer.teleport(targetWorld, targetX, targetY, targetZ,
                 EnumSet.noneOf(PositionFlag.class), player.getYaw(), player.getPitch(), false);
+
+        // 记录日志
+        TeleportLogManager.getInstance().logTeleport("death", null,
+                sourceDim, sourceX, sourceY, sourceZ,
+                dimension, targetX, targetY, targetZ);
     }
 
     @Override
@@ -143,59 +184,30 @@ public class SingleplayerTeleportStrategy implements TeleportStrategy {
         }
 
         BlockPos pos = respawn.respawnData().getPos();
+        double targetX = pos.getX() + 0.5;
+        double targetY = pos.getY();
+        double targetZ = pos.getZ() + 0.5;
+
+        // 记录源位置
+        String sourceDim = player.getEntityWorld().getRegistryKey().getValue().toString();
+        double sourceX = player.getX();
+        double sourceY = player.getY();
+        double sourceZ = player.getZ();
 
         // 传送到重生点（方块坐标需要添加 0.5 偏移，保持玩家当前朝向）
-        serverPlayer.teleport(server.getOverworld(), pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5,
+        serverPlayer.teleport(server.getOverworld(), targetX, targetY, targetZ,
                 EnumSet.noneOf(PositionFlag.class), player.getYaw(), player.getPitch(), false);
+
+        // 记录日志
+        TeleportLogManager.getInstance().logTeleport("respawn", null,
+                sourceDim, sourceX, sourceY, sourceZ,
+                "minecraft:overworld", targetX, targetY, targetZ);
+
         return true;
     }
 
     private ServerPlayerEntity getServerPlayer(MinecraftServer server, ClientPlayerEntity player) {
         PlayerManager playerManager = server.getPlayerManager();
         return playerManager.getPlayer(player.getUuid());
-    }
-
-    private Optional<Spot> getRespawnLocation(ClientPlayerEntity player) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        MinecraftServer server = client.getServer();
-        if (server == null) return Optional.empty();
-
-        ServerPlayerEntity serverPlayer = getServerPlayer(server, player);
-        if (serverPlayer == null) return Optional.empty();
-
-        var respawn = serverPlayer.getRespawn();
-        if (respawn == null) return Optional.empty();
-
-        var respawnData = respawn.respawnData();
-        if (respawnData == null) return Optional.empty();
-
-        BlockPos pos = respawnData.getPos();
-        return Optional.of(new Spot(
-            "respawn", "RespawnPoint",
-            pos.getX(), pos.getY(), pos.getZ(),
-            0f, 0f, "minecraft:overworld"
-        ));
-    }
-
-    private Optional<Spot> getLastDeathLocation(ClientPlayerEntity player) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        MinecraftServer server = client.getServer();
-        if (server == null) return Optional.empty();
-
-        ServerPlayerEntity serverPlayer = getServerPlayer(server, player);
-        if (serverPlayer == null) return Optional.empty();
-
-        Optional<GlobalPos> deathPosOpt = serverPlayer.getLastDeathPos();
-        if (deathPosOpt.isEmpty()) return Optional.empty();
-
-        GlobalPos deathPos = deathPosOpt.get();
-        BlockPos pos = deathPos.pos();
-        String dimension = deathPos.dimension().getValue().toString();
-
-        return Optional.of(new Spot(
-            "death", "DeathPoint",
-            pos.getX(), pos.getY(), pos.getZ(),
-            0f, 0f, dimension
-        ));
     }
 }

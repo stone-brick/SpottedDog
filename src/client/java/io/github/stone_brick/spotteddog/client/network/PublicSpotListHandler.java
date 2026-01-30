@@ -10,6 +10,7 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * 客户端公开 Spot 列表处理器。
@@ -51,7 +52,7 @@ public class PublicSpotListHandler {
     }
 
     private static final List<PublicSpotInfo> publicSpots = new ArrayList<>();
-    private static java.util.function.Consumer<List<PublicSpotInfo>> listCallback;
+    private static Consumer<List<PublicSpotInfo>> listCallback;
 
     /**
      * 注册处理器。
@@ -109,7 +110,7 @@ public class PublicSpotListHandler {
     /**
      * 请求获取公开 Spot 列表（异步回调）。
      */
-    public static void requestPublicSpotsWithCallback(java.util.function.Consumer<List<PublicSpotInfo>> callback) {
+    public static void requestPublicSpotsWithCallback(Consumer<List<PublicSpotInfo>> callback) {
         listCallback = callback;
         requestPublicSpots();
     }

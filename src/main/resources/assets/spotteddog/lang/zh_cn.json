@@ -62,5 +62,9 @@
   "spotteddog.whitelist.added.success": "已将 %s 添加到 %s 白名单",
   "spotteddog.whitelist.already.in": "%s 已在白名单中（已更新名称）",
   "spotteddog.whitelist.removed.success": "已将 %s 从 %s 白名单移除",
-  "spotteddog.whitelist.not.in": "%s 不在白名单中"
+  "spotteddog.whitelist.not.in": "%s 不在白名单中",
+  "spotteddog.log.permission.denied": "§c你没有权限执行此操作",
+  "spotteddog.log.list.header": "§a最近的 %d 条传送记录:",
+  "spotteddog.log.empty": "§7暂无传送记录",
+  "spotteddog.log.cleared": "§a已清除所有传送记录"
 }

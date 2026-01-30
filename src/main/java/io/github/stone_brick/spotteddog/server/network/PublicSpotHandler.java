@@ -6,6 +6,8 @@ import io.github.stone_brick.spotteddog.network.s2c.TeleportConfirmS2CPayload;
 import io.github.stone_brick.spotteddog.server.config.CooldownManager;
 import io.github.stone_brick.spotteddog.server.data.PublicSpot;
 import io.github.stone_brick.spotteddog.server.data.PublicSpotManager;
+import io.github.stone_brick.spotteddog.server.data.TeleportLog;
+import io.github.stone_brick.spotteddog.server.data.TeleportLogManager;
 import io.github.stone_brick.spotteddog.server.permission.PermissionManager;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -285,12 +287,38 @@ public class PublicSpotHandler {
      */
     private static boolean teleportToPublicSpot(ServerPlayerEntity player, ServerWorld world, PublicSpot spot) {
         try {
+            // 记录源位置
+            String sourceDim = player.getEntityWorld().getRegistryKey().getValue().toString();
+            double sourceX = player.getX();
+            double sourceY = player.getY();
+            double sourceZ = player.getZ();
+
             player.teleport(world, spot.getX(), spot.getY(), spot.getZ(),
                     EnumSet.noneOf(PositionFlag.class), spot.getYaw(), spot.getPitch(), false);
+
+            // 记录日志
+            logPublicSpotTeleport(player, spot, sourceDim, sourceX, sourceY, sourceZ);
+
             return true;
         } catch (Exception e) {
             return false;
         }
+    }
+
+    /**
+     * 记录公开 Spot 传送日志。
+     */
+    private static void logPublicSpotTeleport(ServerPlayerEntity player, PublicSpot spot,
+                                               String sourceDim, double sourceX, double sourceY, double sourceZ) {
+        TeleportLog log = TeleportLog.builder()
+                .playerName(player.getName().getString())
+                .playerUuid(player.getUuid().toString())
+                .teleportType("public_spot")
+                .spotName(spot.getFullName())
+                .source(sourceDim, sourceX, sourceY, sourceZ)
+                .target(spot.getDimension(), spot.getX(), spot.getY(), spot.getZ())
+                .build();
+        TeleportLogManager.getInstance().logTeleport(log);
     }
 
     /**

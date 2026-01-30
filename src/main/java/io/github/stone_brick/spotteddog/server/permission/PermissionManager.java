@@ -3,7 +3,6 @@ package io.github.stone_brick.spotteddog.server.permission;
 import io.github.stone_brick.spotteddog.server.config.ConfigManager;
 import io.github.stone_brick.spotteddog.server.permission.WhitelistManager;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.PlayerConfigEntry;
 import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.util.UUID;
