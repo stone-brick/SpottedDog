@@ -433,7 +433,7 @@ public class SpotCommand {
     private static final int COL_VIS = 6;
 
     private static void sendTableHeader() {
-        String header = String.format("§l%-"+COL_NAME+"s %-"+COL_DIM+"s %-"+COL_COORD+"s %-"+COL_VIS+"s",
+        String header = String.format("%-"+COL_NAME+"s %-"+COL_DIM+"s %-"+COL_COORD+"s %-"+COL_VIS+"s",
                 Text.translatable("spotteddog.list.header.name").getString(),
                 Text.translatable("spotteddog.list.header.dimension").getString(),
                 Text.translatable("spotteddog.list.header.coord").getString(),
