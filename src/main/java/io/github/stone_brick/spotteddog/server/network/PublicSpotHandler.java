@@ -169,7 +169,6 @@ public class PublicSpotHandler {
         ServerPlayNetworking.registerGlobalReceiver(PublicSpotTeleportC2SPayload.ID, (payload, context) -> {
             ServerPlayerEntity player = context.player();
             MinecraftServer server = player.getEntityWorld().getServer();
-            String playerUuid = player.getUuid().toString();
 
             // 验证权限
             if (!PermissionManager.canTeleportToPublicSpot(player)) {
@@ -208,9 +207,9 @@ public class PublicSpotHandler {
                 return;
             }
 
-            // 使用 UUID 查找公开 Spot（避免同一玩家从不同地址连接时找不到 Spot）
+            // 使用完整名称查找公开 Spot
             Optional<PublicSpot> spotOpt = PublicSpotManager.getInstance()
-                    .getPublicSpotByFullNameWithUuid(payload.fullName(), playerUuid);
+                    .getPublicSpotByFullName(payload.fullName());
 
             if (spotOpt.isEmpty()) {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(

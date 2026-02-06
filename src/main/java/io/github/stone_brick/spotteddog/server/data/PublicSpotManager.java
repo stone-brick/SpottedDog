@@ -260,12 +260,11 @@ public class PublicSpotManager {
     }
 
     /**
-     * 通过完整名称和玩家 UUID 获取公开 Spot。
-     * 使用 UUID 匹配避免同一玩家从不同地址连接时找不到 Spot 的问题。
+     * 通过完整名称获取公开 Spot。
      * 完整名称格式：-spotName-ownerName
      * 例如：-home-stone_brick
      */
-    public synchronized Optional<PublicSpot> getPublicSpotByFullNameWithUuid(String fullName, String ownerUuid) {
+    public synchronized Optional<PublicSpot> getPublicSpotByFullName(String fullName) {
         if (!fullName.startsWith("-")) {
             return Optional.empty();
         }
@@ -277,11 +276,11 @@ public class PublicSpotManager {
         }
 
         String spotName = withoutPrefix.substring(0, lastDashIndex);
-        // ownerName 只用于显示，不用于匹配
+        String ownerName = withoutPrefix.substring(lastDashIndex + 1);
 
         return publicSpots.stream()
-                .filter(s -> s.getOwnerUuid().equals(ownerUuid))
                 .filter(s -> s.getDisplayName().equals(spotName))
+                .filter(s -> s.getOwnerName().equalsIgnoreCase(ownerName))
                 .findFirst();
     }
 

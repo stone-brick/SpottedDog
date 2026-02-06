@@ -42,8 +42,6 @@
   "spotteddog.teleport.action.public_tp": "公开 Spot",
   "spotteddog.public.none": "当前没有公开的 Spot",
   "spotteddog.public.list.updated": "公开 Spot 列表已更新（%d 个）",
-  "spotteddog.public.list.count": "公开 Spot 列表(%d 个)",
-  "spotteddog.public.list.item": "  - %s (%s)",
   "spotteddog.public.published": "已公开 Spot: %s",
   "spotteddog.public.unpublished": "已取消公开 Spot: %s",
   "spotteddog.public.spot.duplicate": "Spot 已公开或名称重复",
@@ -77,9 +75,11 @@
   "spotteddog.list.header.dimension": "维度",
   "spotteddog.list.header.coord": "坐标",
   "spotteddog.list.header.visibility": "可见性",
-  "spotteddog.visibility.public": "已公开",
+  "spotteddog.list.spot.owner": "所有者: %s",
+  "spotteddog.visibility.public": "公开",
   "spotteddog.visibility.private": "私有",
   "spotteddog.dimension.overworld": "主世界",
   "spotteddog.dimension.nether": "下界",
-  "spotteddog.dimension.the_end": "末地"
+  "spotteddog.dimension.the_end": "末地",
+  "spotteddog.list.header.action": "操作"
 }
