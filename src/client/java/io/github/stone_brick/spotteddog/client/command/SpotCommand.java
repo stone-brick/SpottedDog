@@ -76,6 +76,27 @@ public class SpotCommand {
     private static final long REQUEST_COOLDOWN_MS = 5000; // 5秒冷却
 
     /**
+     * 更新权限缓存（供 PublicSpotListHandler 调用）
+     */
+    public static void updatePermissions(boolean canTeleport, boolean canManagePublicSpots) {
+        PermissionChecker.setPermissions(canTeleport, canManagePublicSpots);
+    }
+
+    /**
+     * 刷新权限信息（多人模式）- 通过请求公开 Spot 列表获取权限
+     */
+    private static void refreshPermissionsIfNeeded() {
+        if (MinecraftClient.getInstance().isInSingleplayer()) {
+            // 单人模式：无需公开 Spot 功能
+            PermissionChecker.setPermissions(true, false);
+            return;
+        }
+
+        // 请求公开 Spot 列表，响应中会包含权限信息
+        PublicSpotListHandler.requestPublicSpots();
+    }
+
+    /**
      * 如果距离上次请求超过冷却时间，则向服务器请求公开 Spot 列表。
      */
     private static void requestPublicSpotsIfNeeded() {
@@ -94,7 +115,7 @@ public class SpotCommand {
         String worldName = getCurrentWorldName();
         dataManager.setCurrentWorld(worldId, worldName);
 
-        // 在 /spot 后输入内容时触发公开 Spot 更新（仅触发，不添加建议）
+        // 在 /spot 后输入内容时触发公开 Spot 更新和权限刷新（仅触发，不添加建议）
         dispatcher.register(LiteralArgumentBuilder.<FabricClientCommandSource>literal("spot")
                 .then(RequiredArgumentBuilder.<FabricClientCommandSource, String>argument("trigger", StringArgumentType.string())
                         .suggests((context, builder) -> {
@@ -103,6 +124,7 @@ public class SpotCommand {
                             if (!remaining.isEmpty() && remaining.charAt(0) != ' '
                                     && !MinecraftClient.getInstance().isInSingleplayer()) {
                                 requestPublicSpotsIfNeeded();
+                                refreshPermissionsIfNeeded();
                             }
                             return builder.buildFuture();
                         })
@@ -419,73 +441,450 @@ public class SpotCommand {
             sendFeedback("spotteddog.spot.list.empty");
         } else {
             sendFeedback("spotteddog.spot.list.header");
-            sendTableHeader();
+            boolean isSingleplayer = MinecraftClient.getInstance().isInSingleplayer();
+            sendTableHeader(isSingleplayer);
             for (Spot spot : spots) {
-                sendTableRow(spot);
+                sendTableRow(spot, isSingleplayer);
             }
         }
         return Command.SINGLE_SUCCESS;
     }
 
-    private static final int COL_NAME = 12;
-    private static final int COL_DIM = 8;
-    private static final int COL_COORD = 18;
-    private static final int COL_VIS = 6;
+    // 列宽配置
+    private static final int COL_NAME_WIDTH = 55;
+    private static final int COL_DIM_WIDTH = 25;
+    private static final int COL_COORD_WIDTH = 80;
+    private static final int COL_VIS_WIDTH = 40;
+    private static final int COL_OP_WIDTH = 40;
+    private static final int COL_SPACING = 4;
 
-    private static void sendTableHeader() {
-        String header = String.format("|%-"+COL_NAME+"s|%-"+COL_DIM+"s|%-"+COL_COORD+"s|%-"+COL_VIS+"s|",
-                Text.translatable("spotteddog.list.header.name").getString(),
-                Text.translatable("spotteddog.list.header.dimension").getString(),
-                Text.translatable("spotteddog.list.header.coord").getString(),
-                Text.translatable("spotteddog.list.header.visibility").getString());
-        sendFeedback(header);
+    // 单人模式列配置
+    private static final int[] SINGLEPLAYER_COLS = {COL_NAME_WIDTH, COL_DIM_WIDTH, COL_COORD_WIDTH, COL_OP_WIDTH};
+    // 多人模式列配置（包含可见性）
+    private static final int[] MULTIPLAYER_COLS = {COL_NAME_WIDTH, COL_DIM_WIDTH, COL_COORD_WIDTH, COL_VIS_WIDTH, COL_OP_WIDTH};
 
-        String separator = "§7" + "-".repeat(COL_NAME + COL_DIM + COL_COORD + COL_VIS + 5);
-        sendFeedback(separator);
-    }
+    /**
+     * Spot 操作类型枚举
+     */
+    private enum SpotAction {
+        TELEPORT('T', "spotteddog.action.teleport"),
+        REMOVE('R', "spotteddog.action.remove"),
+        UPDATE('U', "spotteddog.action.update"),
+        RENAME('E', "spotteddog.action.rename"),
+        PUBLIC('P', "spotteddog.action.public");
 
-    private static void sendTableRow(Spot spot) {
-        // 可见性（仅多人模式）
-        String visibility;
-        if (!MinecraftClient.getInstance().isInSingleplayer()) {
-            String playerName = MinecraftClient.getInstance().player.getName().getString();
-            if (PublicSpotListHandler.isSpotPublic(spot.getName(), playerName)) {
-                visibility = "§a" + Text.translatable("spotteddog.visibility.public").getString();
-            } else {
-                visibility = "§7" + Text.translatable("spotteddog.visibility.private").getString();
-            }
-        } else {
-            visibility = "§7" + Text.translatable("spotteddog.visibility.private").getString();
+        final char symbol;
+        final String translationKey;
+
+        SpotAction(char symbol, String translationKey) {
+            this.symbol = symbol;
+            this.translationKey = translationKey;
         }
 
-        // 坐标
-        String coord = String.format("[%.0f, %.0f, %.0f]", spot.getX(), spot.getY(), spot.getZ());
+        /**
+         * 获取带颜色的操作符号
+         */
+        String getColoredSymbol() {
+            return switch (this) {
+                case TELEPORT -> "§bT";
+                case REMOVE -> "§cR";
+                case UPDATE -> "§aU";
+                case RENAME -> "§eE";
+                case PUBLIC -> "§dP";
+            };
+        }
 
-        String row = String.format("|%s|%s|%s|%s|",
-                truncate(spot.getName(), COL_NAME),
-                "§b" + truncate(formatDimension(spot.getDimension()), COL_DIM),
-                "§f" + truncate(coord, COL_COORD),
-                truncate(visibility, COL_VIS));
-        sendFeedback(row);
+        /**
+         * 获取操作的命令
+         */
+        String getCommand(String spotName) {
+            return switch (this) {
+                case TELEPORT -> "/spot tp \"" + spotName + "\"";
+                case REMOVE -> "/spot remove \"" + spotName + "\"";
+                case UPDATE -> "/spot update \"" + spotName + "\"";
+                case RENAME -> "/spot rename \"" + spotName + "\" ";
+                case PUBLIC -> "/spot public \"" + spotName + "\"";
+            };
+        }
+
+        /**
+         * 获取带点击事件的命令文本（点击后执行命令）
+         */
+        String getClickableCommand(String spotName) {
+            return "§n" + getColoredSymbol() + "§r";
+        }
     }
 
-    private static String truncate(String text, int maxLength) {
-        if (text == null) return "";
-        if (text.length() <= maxLength) return text;
-        return text.substring(0, maxLength - 3) + "...";
+    /**
+     * 获取 Spot 的可用操作列表（按权限过滤）
+     */
+    private static SpotAction[] getAvailableActions(Spot spot, boolean isSingleplayer) {
+        if (isSingleplayer) {
+            // 单人模式：T、R、U、E 可用，P（公开）不可用
+            java.util.List<SpotAction> actions = new java.util.ArrayList<>();
+            actions.add(SpotAction.TELEPORT);
+            actions.add(SpotAction.REMOVE);
+            actions.add(SpotAction.UPDATE);
+            actions.add(SpotAction.RENAME);
+            return actions.toArray(new SpotAction[0]);
+        }
+
+        // 多人模式
+        String playerName = MinecraftClient.getInstance().player.getName().getString();
+        boolean isOwner = spot.getName() != null; // 本地 Spot 都是自己的
+
+        // 收集可用操作
+        java.util.List<SpotAction> actions = new java.util.ArrayList<>();
+
+        // T (传送)：需要传送权限
+        if (PermissionChecker.canTeleport()) {
+            actions.add(SpotAction.TELEPORT);
+        }
+
+        // R/U/E (删除/更新/重命名)：仅自己的 Spot
+        if (isOwner) {
+            actions.add(SpotAction.REMOVE);
+            actions.add(SpotAction.UPDATE);
+            actions.add(SpotAction.RENAME);
+
+            // P (公开/取消公开)：需要公开 Spot 权限
+            if (PermissionChecker.canManagePublicSpots()) {
+                actions.add(SpotAction.PUBLIC);
+            }
+        }
+
+        return actions.toArray(new SpotAction[0]);
+    }
+
+    /**
+     * 权限检查工具类（多人模式从服务端同步）
+     * 权限值由 refreshPermissionsIfNeeded() 在命令执行前刷新
+     */
+    private static class PermissionChecker {
+        private static boolean canTeleport = true;
+        private static boolean canManagePublicSpots = false;
+
+        static synchronized boolean canTeleport() {
+            return canTeleport;
+        }
+
+        static synchronized boolean canManagePublicSpots() {
+            return canManagePublicSpots;
+        }
+
+        static synchronized void setPermissions(boolean teleport, boolean managePublic) {
+            canTeleport = teleport;
+            canManagePublicSpots = managePublic;
+        }
+    }
+
+    private static void sendTableHeader(boolean isSingleplayer) {
+        net.minecraft.client.font.TextRenderer tr = MinecraftClient.getInstance().textRenderer;
+        int[] widths = isSingleplayer ? SINGLEPLAYER_COLS : MULTIPLAYER_COLS;
+
+        String name = Text.translatable("spotteddog.list.header.name").getString();
+        String dim = Text.translatable("spotteddog.list.header.dimension").getString();
+        String coord = Text.translatable("spotteddog.list.header.coord").getString();
+        String action = Text.translatable("spotteddog.list.header.action").getString();
+
+        if (isSingleplayer) {
+            sendFeedback(padToWidth(tr, widths, name, dim, coord, action));
+        } else {
+            String vis = Text.translatable("spotteddog.list.header.visibility").getString();
+            sendFeedback(padToWidth(tr, widths, name, dim, coord, vis, action));
+        }
+
+        // 分隔线
+        String sep = "§7";
+        int totalWidth = calculateTotalWidth(widths);
+        // padToWidth 会在列之间添加 COL_SPACING，需要加上
+        if (widths.length > 1) {
+            totalWidth += COL_SPACING * (widths.length - 1);
+        }
+        while (tr.getWidth(sep) <= totalWidth) {
+            sep += "-";
+        }
+        sendFeedback(sep);
+    }
+
+    private static void sendTableRow(Spot spot, boolean isSingleplayer) {
+        net.minecraft.client.font.TextRenderer tr = MinecraftClient.getInstance().textRenderer;
+        int[] widths = isSingleplayer ? SINGLEPLAYER_COLS : MULTIPLAYER_COLS;
+
+        String coord = String.format("§f[%.0f, %.0f, %.0f]", spot.getX(), spot.getY(), spot.getZ());
+        String dimShort = formatDimension(spot.getDimension());
+        String dimFull = localizeDimension(spot.getDimension());
+        String coordFull = String.format("X: %.1f  Y: %.1f  Z: %.1f", spot.getX(), spot.getY(), spot.getZ());
+
+        // 获取可用操作列表
+        SpotAction[] availableActions = getAvailableActions(spot, isSingleplayer);
+
+        if (isSingleplayer) {
+            sendTableRowWithAction(tr, widths,
+                    new String[]{spot.getName(), dimShort, coord},
+                    new String[]{spot.getName(), dimFull, coordFull},
+                    availableActions, spot.getName());
+        } else {
+            String playerName = MinecraftClient.getInstance().player.getName().getString();
+            String visibility = PublicSpotListHandler.isSpotPublic(spot.getName(), playerName)
+                    ? "§a" + Text.translatable("spotteddog.visibility.public").getString()
+                    : "§7" + Text.translatable("spotteddog.visibility.private").getString();
+
+            sendTableRowWithAction(tr, widths,
+                    new String[]{spot.getName(), dimShort, coord, visibility},
+                    new String[]{spot.getName(), dimFull, coordFull, null},
+                    availableActions, spot.getName());
+        }
+    }
+
+    /**
+     * 格式化操作列表为可显示的文本
+     */
+    private static String formatActions(SpotAction[] actions, String spotName) {
+        if (actions == null || actions.length == 0) {
+            return "§7-";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < actions.length; i++) {
+            sb.append(actions[i].getColoredSymbol());
+            if (i < actions.length - 1) {
+                sb.append("§7 ");
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 构建操作列的悬停文本
+     */
+    private static String buildActionHoverText(SpotAction[] actions, String spotName) {
+        if (actions == null || actions.length == 0) {
+            return Text.translatable("spotteddog.action.no.available").getString();
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("§b").append(Text.translatable("spotteddog.action.hover.title").getString()).append("§r\n");
+        for (SpotAction action : actions) {
+            sb.append(action.getColoredSymbol()).append(" §f")
+                    .append(Text.translatable(action.translationKey).getString()).append("\n");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 发送带操作列的行（支持点击事件）
+     */
+    private static void sendTableRowWithAction(net.minecraft.client.font.TextRenderer tr, int[] widths,
+                                               String[] parts, String[] hoverTexts,
+                                               SpotAction[] actions, String spotName) {
+        if (parts == null) parts = new String[0];
+        if (hoverTexts == null) hoverTexts = new String[parts.length];
+
+        // 处理普通列（不包含操作列）
+        net.minecraft.text.MutableText fullText = net.minecraft.text.Text.empty();
+
+        for (int i = 0; i < parts.length; i++) {
+            String part = parts[i] != null ? parts[i] : "";
+            String full = hoverTexts[i] != null ? hoverTexts[i] : part;
+            String processed = truncateIfNeeded(tr, part, widths, i);
+
+            net.minecraft.text.MutableText partText = net.minecraft.text.Text.literal(processed);
+            if (full != null && !full.equals(processed)) {
+                partText.setStyle(partText.getStyle()
+                        .withHoverEvent(new net.minecraft.text.HoverEvent.ShowText(
+                                net.minecraft.text.Text.literal(full))));
+            }
+            fullText.append(partText);
+
+            // 添加空格填充
+            int spacesLen = (widths[i] - tr.getWidth(processed)) / tr.getWidth(" ");
+            if (spacesLen > 0) {
+                fullText.append(net.minecraft.text.Text.literal(" ".repeat(spacesLen)));
+            }
+            fullText.append(net.minecraft.text.Text.literal(" ".repeat(COL_SPACING)));
+        }
+
+        // 添加操作列 - 为每个操作符号单独创建带 click 事件的组件
+        if (actions != null && actions.length > 0) {
+            for (int i = 0; i < actions.length; i++) {
+                SpotAction action = actions[i];
+                net.minecraft.text.MutableText actionText = net.minecraft.text.Text.literal(action.getColoredSymbol());
+
+                // 添加 hover 提示（显示操作名称）
+                String actionDesc = Text.translatable(action.translationKey).getString();
+                actionText.setStyle(actionText.getStyle()
+                        .withHoverEvent(new net.minecraft.text.HoverEvent.ShowText(
+                                net.minecraft.text.Text.literal(actionDesc))));
+
+                // 添加 click 事件将命令填入聊天栏（玩家确认后执行）
+                String command = action.getCommand(spotName);
+                actionText.setStyle(actionText.getStyle()
+                        .withClickEvent(new net.minecraft.text.ClickEvent.SuggestCommand(command)));
+
+                fullText.append(actionText);
+
+                // 添加空格分隔（除最后一个外）
+                if (i < actions.length - 1) {
+                    fullText.append(net.minecraft.text.Text.literal("§7 "));
+                }
+            }
+        } else {
+            // 无操作时显示 "-"
+            fullText.append(net.minecraft.text.Text.literal("§7-"));
+        }
+
+        ClientPlayerEntity player = getPlayer();
+        if (player != null) {
+            player.sendMessage(fullText, false);
+        }
+    }
+
+    private static int calculateTotalWidth(int[] widths) {
+        int total = 0;
+        for (int width : widths) total += width;
+        // 加上列间距（n列有 n-1 个间距）
+        if (widths.length > 1) {
+            total += COL_SPACING * (widths.length - 1);
+        }
+        return total;
+    }
+
+    private static void sendTableRowWithHover(net.minecraft.client.font.TextRenderer tr, int[] widths, String[] parts, String[] hoverTexts) {
+        if (parts == null) parts = new String[0];
+        if (hoverTexts == null) hoverTexts = new String[parts.length];
+
+        String[] processedParts = new String[parts.length];
+        String[] fullTexts = new String[parts.length];
+        int[] textWidths = new int[parts.length];
+
+        for (int i = 0; i < parts.length; i++) {
+            String part = parts[i] != null ? parts[i] : "";
+            fullTexts[i] = hoverTexts[i] != null ? hoverTexts[i] : part;
+            processedParts[i] = truncateIfNeeded(tr, part, widths, i);
+            textWidths[i] = tr.getWidth(processedParts[i]);
+        }
+
+        // 构建带 hover 效果的复合 Text
+        net.minecraft.text.MutableText fullText = net.minecraft.text.Text.empty();
+
+        for (int i = 0; i < processedParts.length; i++) {
+            // 添加截断/显示的文本部分（需要 hover 时）
+            net.minecraft.text.MutableText partText = net.minecraft.text.Text.literal(processedParts[i]);
+            if (fullTexts[i] != null && !fullTexts[i].equals(processedParts[i])) {
+                partText.setStyle(partText.getStyle()
+                        .withHoverEvent(new net.minecraft.text.HoverEvent.ShowText(
+                                net.minecraft.text.Text.literal(fullTexts[i]))));
+            }
+            fullText.append(partText);
+
+            // 添加空格填充（使内容对齐列宽）
+            if (i < widths.length) {
+                int spacesLen = (widths[i] - textWidths[i]) / tr.getWidth(" ");
+                if (spacesLen > 0) {
+                    fullText.append(net.minecraft.text.Text.literal(" ".repeat(spacesLen)));
+                }
+            }
+
+            // 添加列间距（除最后一列外）
+            if (i < processedParts.length - 1) {
+                fullText.append(net.minecraft.text.Text.literal(" ".repeat(COL_SPACING)));
+            }
+        }
+
+        ClientPlayerEntity player = getPlayer();
+        if (player != null) {
+            player.sendMessage(fullText, false);
+        }
+    }
+
+    private static String padToWidth(net.minecraft.client.font.TextRenderer tr, int[] widths, String... parts) {
+        if (parts == null) parts = new String[0];
+        int totalTargetWidth = 0;
+        int totalTextWidth = 0;
+        String[] processedParts = new String[parts.length];
+        int[] textWidths = new int[parts.length];
+
+        for (int i = 0; i < parts.length; i++) {
+            String part = parts[i] != null ? parts[i] : "";
+            processedParts[i] = truncateIfNeeded(tr, part, widths, i);
+            textWidths[i] = tr.getWidth(processedParts[i]);
+
+            totalTextWidth += textWidths[i];
+            if (i < widths.length) {
+                totalTargetWidth += widths[i];
+            }
+        }
+        int totalSpacesNeeded = totalTargetWidth - totalTextWidth;
+
+        StringBuilder sb = new StringBuilder();
+        int spacesRemaining = totalSpacesNeeded;
+        for (int i = 0; i < processedParts.length; i++) {
+            sb.append(processedParts[i]);
+            if (i < widths.length && spacesRemaining > 0) {
+                int spacesToAdd = Math.min(spacesRemaining, (widths[i] - textWidths[i]) / tr.getWidth(" "));
+                if (spacesToAdd > 0) {
+                    sb.append(" ".repeat(spacesToAdd));
+                    spacesRemaining -= spacesToAdd;
+                }
+            }
+
+            // 添加列间距（除最后一列外）
+            if (i < processedParts.length - 1) {
+                sb.append(" ".repeat(COL_SPACING));
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 如果文本超出指定列宽，截断并添加 "..."，否则返回原文本。
+     */
+    private static String truncateIfNeeded(net.minecraft.client.font.TextRenderer tr, String part, int[] widths, int colIndex) {
+        if (part == null || part.isEmpty()) return "";
+        if (colIndex >= widths.length) return part;
+
+        int partWidth = tr.getWidth(part);
+        int colWidth = widths[colIndex];
+
+        if (partWidth > colWidth) {
+            String truncated = truncateToWidth(tr, part, colWidth - tr.getWidth("..."));
+            return truncated + "...";
+        }
+        return part;
+    }
+
+    /**
+     * 截断文本使其宽度不超过指定值（不含省略号宽度）。
+     */
+    private static String truncateToWidth(net.minecraft.client.font.TextRenderer tr, String text, int maxWidth) {
+        if (text == null || text.isEmpty() || maxWidth <= 0) return "";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            sb.append(c);
+            if (tr.getWidth(sb.toString()) > maxWidth) {
+                sb.deleteCharAt(sb.length() - 1);
+                break;
+            }
+        }
+        return sb.toString();
     }
 
     private static String formatDimension(String dimension) {
-        String key = switch (dimension) {
-            case "minecraft:overworld", "overworld" -> "spotteddog.dimension.overworld";
-            case "minecraft:the_nether", "nether" -> "spotteddog.dimension.nether";
-            case "minecraft:the_end", "the_end", "end" -> "spotteddog.dimension.the_end";
-            default -> null;
+        return switch (dimension) {
+            case "minecraft:overworld", "overworld" -> "§aO";
+            case "minecraft:the_nether", "nether" -> "§cN";
+            case "minecraft:the_end", "the_end", "end" -> "§dE";
+            default -> dimension.substring(0, 1).toUpperCase();
         };
-        if (key != null) {
-            return Text.translatable(key).getString();
-        }
-        return dimension;
+    }
+
+    private static String localizeDimension(String dimension) {
+        return switch (dimension) {
+            case "minecraft:overworld", "overworld" -> Text.translatable("spotteddog.dimension.overworld").getString();
+            case "minecraft:the_nether", "nether" -> Text.translatable("spotteddog.dimension.nether").getString();
+            case "minecraft:the_end", "the_end", "end" -> Text.translatable("spotteddog.dimension.the_end").getString();
+            default -> dimension;
+        };
     }
 
     private static int debugUserData() {

@@ -9,9 +9,12 @@ import java.util.List;
 
 /**
  * 公开 Spot 列表响应（S2C）。
+ * 同时包含玩家的权限信息。
  */
 public record PublicSpotListS2CPayload(
-        List<PublicSpotInfo> spots
+        List<PublicSpotInfo> spots,
+        boolean canTeleport,
+        boolean canManagePublicSpots
 ) implements CustomPayload {
 
     public static final CustomPayload.Id<PublicSpotListS2CPayload> ID =
@@ -29,6 +32,8 @@ public record PublicSpotListS2CPayload(
                             buf.writeDouble(spot.z());
                             buf.writeString(spot.dimension());
                         }
+                        buf.writeBoolean(payload.canTeleport());
+                        buf.writeBoolean(payload.canManagePublicSpots());
                     },
                     buf -> {
                         int size = buf.readInt();
@@ -43,7 +48,11 @@ public record PublicSpotListS2CPayload(
                                     buf.readString()
                             ));
                         }
-                        return new PublicSpotListS2CPayload(spots);
+                        return new PublicSpotListS2CPayload(
+                                spots,
+                                buf.readBoolean(),
+                                buf.readBoolean()
+                        );
                     }
             );
 
@@ -66,5 +75,20 @@ public record PublicSpotListS2CPayload(
         public String getFullName() {
             return "-" + displayName + "-" + ownerName;
         }
+    }
+
+    /**
+     * 创建只有 Spot 列表的负载（向后兼容）。
+     */
+    public static PublicSpotListS2CPayload create(List<PublicSpotInfo> spots) {
+        return new PublicSpotListS2CPayload(spots, true, false);
+    }
+
+    /**
+     * 创建包含权限信息的负载。
+     */
+    public static PublicSpotListS2CPayload create(List<PublicSpotInfo> spots,
+                                                   boolean canTeleport, boolean canManagePublicSpots) {
+        return new PublicSpotListS2CPayload(spots, canTeleport, canManagePublicSpots);
     }
 }

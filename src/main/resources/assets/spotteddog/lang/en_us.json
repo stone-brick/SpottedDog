@@ -75,5 +75,12 @@
   "spotteddog.visibility.private": "Private",
   "spotteddog.dimension.overworld": "Overworld",
   "spotteddog.dimension.nether": "Nether",
-  "spotteddog.dimension.the_end": "The End"
+  "spotteddog.dimension.the_end": "The End",
+  "spotteddog.list.header.action": "Action",
+  "spotteddog.action.remove": "Remove",
+  "spotteddog.action.update": "Update",
+  "spotteddog.action.rename": "Rename",
+  "spotteddog.action.public": "Public",
+  "spotteddog.action.no.available": "No actions available",
+  "spotteddog.action.hover.title": "Available Actions"
 }

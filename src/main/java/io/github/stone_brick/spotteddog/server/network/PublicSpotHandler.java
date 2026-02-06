@@ -156,7 +156,13 @@ public class PublicSpotHandler {
                 ));
             }
 
-            ServerPlayNetworking.send(player, new PublicSpotListS2CPayload(spotInfos));
+            // 获取玩家权限
+            boolean canTeleport = PermissionManager.canTeleport(player);
+            boolean canManagePublicSpots = PermissionManager.canManagePublicSpots(player);
+
+            // 发送包含权限信息的响应
+            ServerPlayNetworking.send(player, PublicSpotListS2CPayload.create(
+                    spotInfos, canTeleport, canManagePublicSpots));
         });
 
         // 处理传送到公开 Spot 请求

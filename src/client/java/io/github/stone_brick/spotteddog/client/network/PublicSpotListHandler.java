@@ -1,5 +1,6 @@
 package io.github.stone_brick.spotteddog.client.network;
 
+import io.github.stone_brick.spotteddog.client.command.SpotCommand;
 import io.github.stone_brick.spotteddog.network.c2s.PublicSpotListC2SPayload;
 import io.github.stone_brick.spotteddog.network.c2s.PublicSpotUpdateC2SPayload;
 import io.github.stone_brick.spotteddog.network.s2c.PublicSpotListS2CPayload;
@@ -83,6 +84,9 @@ public class PublicSpotListHandler {
                         spot.dimension()
                 ));
             }
+
+            // 更新权限缓存
+            SpotCommand.updatePermissions(payload.canTeleport(), payload.canManagePublicSpots());
 
             // 回调（如果调用方需要自定义处理）
             if (listCallback != null) {
