@@ -32,9 +32,10 @@
 | `/spot rename <旧名> <新名>` | 重命名标记点 |
 | `/spot teleport <名称>` | 传送到标记点或特殊目标 |
 | `/spot tp <名称>` | 传送到标记点（简写） |
-| `/spot list` | 列出所有保存的标记点（单人：私有Spot；多人：私有Spot+公开Spot） |
+| `/spot list` | 列出所有保存的标记点 |
 | `/spot public <名称>` | 公开 Spot（仅多人模式） |
 | `/spot unpublic <名称>` | 取消公开 Spot（仅多人模式） |
+| `/spot public list` | 列出公开的 Spot（仅多人模式） |
 | `/spot whitelist teleport add\|remove\|list <玩家名>` | 传送白名单管理（OP） |
 | `/spot whitelist public add\|remove\|list <玩家名>` | 公开 Spot 白名单管理（OP） |
 | `/spot whitelist publictp add\|remove\|list <玩家名>` | 公开 Spot 传送白名单管理（OP） |
@@ -115,8 +116,6 @@ src/
         ├── data/
         │   ├── PlayerDataManager.java   # 数据管理
         │   └── Spot.java                # 标记点数据模型
-        ├── ui/
-        │   └── SpotTableBuilder.java    # 表格构建（表头、分隔线、行列格式）
         └── network/
             ├── TeleportConfirmHandler.java   # 客户端传送确认处理
             ├── PublicSpotListHandler.java    # 公开 Spot 列表处理
@@ -201,7 +200,7 @@ spotteddog/
 
 | 版本 | 变更 |
 |------|------|
-| 5.3.0-SNAPSHOT | 公开 Spot 合并到 /spot list、提取 SpotTableBuilder |
+| 5.3.0-SNAPSHOT | 提取表格构建为 SpotTableBuilder、合并公开 Spot 列表到 /spot list、添加交互式操作列 |
 | 5.2.0-SNAPSHOT | 本地化支持（中英文）、配置文件结构重构 |
 | 5.1.0-SNAPSHOT | 白名单权限管理功能、OP 自我保护限制 |
 | 5.0.0-SNAPSHOT | 权限管理、独立的公开 Spot 冷却、传送到公开 Spot 权限 |
