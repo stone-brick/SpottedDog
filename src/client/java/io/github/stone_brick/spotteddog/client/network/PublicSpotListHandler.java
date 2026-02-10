@@ -97,9 +97,9 @@ public class PublicSpotListHandler {
 
             // 显示默认消息
             if (publicSpots.isEmpty()) {
-                player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.public.none"), false);
+                player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.public.none"), true);
             } else {
-                player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.public.list.updated", publicSpots.size()), false);
+                player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.public.list.updated", publicSpots.size()), true);
             }
         });
     }

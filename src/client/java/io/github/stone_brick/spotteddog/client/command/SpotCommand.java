@@ -258,6 +258,26 @@ public class SpotCommand {
         }
     }
 
+    /**
+     * 发送系统消息（会淡出）。
+     */
+    private static void sendSystemMessage(String key) {
+        ClientPlayerEntity player = getPlayer();
+        if (player != null) {
+            player.sendMessage(Text.translatable(key), true);
+        }
+    }
+
+    /**
+     * 发送系统消息（会淡出）。
+     */
+    private static void sendSystemMessage(String key, Object... args) {
+        ClientPlayerEntity player = getPlayer();
+        if (player != null) {
+            player.sendMessage(Text.translatable(key, args), true);
+        }
+    }
+
     private static String getCurrentDimension() {
         return MinecraftClient.getInstance().world != null ?
                 MinecraftClient.getInstance().world.getRegistryKey().getValue().toString() : "minecraft:overworld";
@@ -296,30 +316,30 @@ public class SpotCommand {
 
         // 检查名称是否以 . 开头
         if (name.startsWith(".")) {
-            sendFeedback("spotteddog.spot.name.cannot.start.with.dot");
+            sendSystemMessage("spotteddog.spot.name.cannot.start.with.dot");
             return Command.SINGLE_SUCCESS;
         }
 
         // 检查名称长度
         if (name.length() > MAX_NAME_LENGTH) {
-            sendFeedback("spotteddog.spot.name.too.long", MAX_NAME_LENGTH);
+            sendSystemMessage("spotteddog.spot.name.too.long", MAX_NAME_LENGTH);
             return Command.SINGLE_SUCCESS;
         }
 
         if (dataManager.addSpot(name, player.getX(), player.getY(), player.getZ(),
                 player.getYaw(), player.getPitch(), getCurrentDimension())) {
-            sendFeedback("spotteddog.spot.added", name);
+            sendSystemMessage("spotteddog.spot.added", name);
         } else {
-            sendFeedback("spotteddog.spot.already.exists", name);
+            sendSystemMessage("spotteddog.spot.already.exists", name);
         }
         return Command.SINGLE_SUCCESS;
     }
 
     private static int removeSpot(String name) {
         if (dataManager.removeSpot(name)) {
-            sendFeedback("spotteddog.spot.deleted", name);
+            sendSystemMessage("spotteddog.spot.deleted", name);
         } else {
-            sendFeedback("spotteddog.spot.not.found", name);
+            sendSystemMessage("spotteddog.spot.not.found", name);
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -330,7 +350,7 @@ public class SpotCommand {
 
         if (dataManager.updateSpotPosition(name, player.getX(), player.getY(), player.getZ(),
                 player.getYaw(), player.getPitch(), getCurrentDimension())) {
-            sendFeedback("spotteddog.spot.updated", name);
+            sendSystemMessage("spotteddog.spot.updated", name);
 
             // 多人模式下同步公开 Spot 的更新
             if (!MinecraftClient.getInstance().isInSingleplayer()) {
@@ -342,7 +362,7 @@ public class SpotCommand {
                 }
             }
         } else {
-            sendFeedback("spotteddog.spot.not.found", name);
+            sendSystemMessage("spotteddog.spot.not.found", name);
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -350,13 +370,13 @@ public class SpotCommand {
     private static int renameSpot(String oldName, String newName) {
         // 检查新名称是否以 . 开头
         if (newName.startsWith(".")) {
-            sendFeedback("spotteddog.spot.name.cannot.start.with.dot");
+            sendSystemMessage("spotteddog.spot.name.cannot.start.with.dot");
             return Command.SINGLE_SUCCESS;
         }
 
         // 检查名称长度
         if (newName.length() > MAX_NAME_LENGTH) {
-            sendFeedback("spotteddog.spot.name.too.long", MAX_NAME_LENGTH);
+            sendSystemMessage("spotteddog.spot.name.too.long", MAX_NAME_LENGTH);
             return Command.SINGLE_SUCCESS;
         }
 
@@ -371,14 +391,14 @@ public class SpotCommand {
         }
 
         if (dataManager.renameSpot(oldName, newName)) {
-            sendFeedback("spotteddog.spot.renamed", oldName, newName);
+            sendSystemMessage("spotteddog.spot.renamed", oldName, newName);
 
             // 多人模式下同步公开 Spot 的重命名
             if (wasPublic) {
                 PublicSpotListHandler.sendRenamePublicSpot(oldName, newName);
             }
         } else {
-            sendFeedback("spotteddog.spot.rename.failed");
+            sendSystemMessage("spotteddog.spot.rename.failed");
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -409,7 +429,7 @@ public class SpotCommand {
         if (target.startsWith("-")) {
             if (MinecraftClient.getInstance().isInSingleplayer()) {
                 // 单人模式不处理公开 Spot，提示未找到
-                sendFeedback("spotteddog.spot.not.found", target);
+                sendSystemMessage("spotteddog.spot.not.found", target);
                 return Command.SINGLE_SUCCESS;
             }
 
@@ -436,7 +456,7 @@ public class SpotCommand {
         boolean isSingleplayer = MinecraftClient.getInstance().isInSingleplayer();
 
         if (privateSpots.isEmpty() && (isSingleplayer || publicSpots.isEmpty())) {
-            sendFeedback("spotteddog.spot.list.empty");
+            sendSystemMessage("spotteddog.spot.list.empty");
             return Command.SINGLE_SUCCESS;
         }
 
@@ -675,7 +695,7 @@ public class SpotCommand {
 
         // 如果没有任何数据
         if (privateSpots != null && privateSpots.isEmpty() && publicSpots != null && publicSpots.isEmpty()) {
-            sendFeedback("spotteddog.spot.list.empty");
+            sendSystemMessage("spotteddog.spot.list.empty");
         }
     }
 
@@ -936,7 +956,7 @@ public class SpotCommand {
         // 检查 Spot 是否存在
         Optional<Spot> spot = dataManager.getSpot(name);
         if (spot.isEmpty()) {
-            sendFeedback("spotteddog.spot.not.found", name);
+            sendSystemMessage("spotteddog.spot.not.found", name);
             return Command.SINGLE_SUCCESS;
         }
 

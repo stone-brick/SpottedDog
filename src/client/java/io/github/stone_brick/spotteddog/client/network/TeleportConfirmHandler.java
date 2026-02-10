@@ -36,10 +36,10 @@ public class TeleportConfirmHandler {
                 // 传送成功不显示消息
                 if ("public".equals(payload.type())) {
                     // 公开 Spot 成功
-                    player.sendMessage(Text.translatable("spotteddog.public.published", payload.targetName()), false);
+                    player.sendMessage(Text.translatable("spotteddog.public.published", payload.targetName()), true);
                 } else if ("unpublic".equals(payload.type())) {
                     // 取消公开 Spot 成功
-                    player.sendMessage(Text.translatable("spotteddog.public.unpublished", payload.targetName()), false);
+                    player.sendMessage(Text.translatable("spotteddog.public.unpublished", payload.targetName()), true);
                 }
                 return;
             } else {
@@ -54,7 +54,7 @@ public class TeleportConfirmHandler {
                     messageText = Text.literal(message != null ? message : "");
                 }
                 player.sendMessage(Text.translatable("spotteddog.teleport.failed.message",
-                        Text.translatable(getActionMessageKey(payload.type())), messageText), false);
+                        Text.translatable(getActionMessageKey(payload.type())), messageText), true);
             }
         });
     }

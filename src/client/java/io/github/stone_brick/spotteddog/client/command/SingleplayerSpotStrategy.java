@@ -23,18 +23,30 @@ import java.util.Optional;
 @Environment(EnvType.CLIENT)
 public class SingleplayerSpotStrategy implements SpotStrategy {
 
+    private static void sendSystemMessage(ClientPlayerEntity player, String key) {
+        if (player != null) {
+            player.sendMessage(net.minecraft.text.Text.translatable(key), true);
+        }
+    }
+
+    private static void sendSystemMessage(ClientPlayerEntity player, String key, Object... args) {
+        if (player != null) {
+            player.sendMessage(net.minecraft.text.Text.translatable(key, args), true);
+        }
+    }
+
     @Override
     public void teleportToSpot(ClientPlayerEntity player, Spot spot) {
         MinecraftClient client = MinecraftClient.getInstance();
         MinecraftServer server = client.getServer();
         if (server == null) {
-            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.server"), false);
+            sendSystemMessage(player, "spotteddog.teleport.failed.server");
             return;
         }
 
         ServerPlayerEntity serverPlayer = getServerPlayer(server, player);
         if (serverPlayer == null) {
-            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.player"), false);
+            sendSystemMessage(player, "spotteddog.teleport.failed.player");
             return;
         }
 
@@ -42,7 +54,7 @@ public class SingleplayerSpotStrategy implements SpotStrategy {
         RegistryKey<World> targetKey = getWorldKey(spot.getDimension());
         ServerWorld targetWorld = getWorld(server, targetKey);
         if (targetWorld == null) {
-            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.world"), false);
+            sendSystemMessage(player, "spotteddog.teleport.failed.world");
             return;
         }
 
@@ -96,13 +108,13 @@ public class SingleplayerSpotStrategy implements SpotStrategy {
         MinecraftClient client = MinecraftClient.getInstance();
         MinecraftServer server = client.getServer();
         if (server == null) {
-            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.server"), false);
+            sendSystemMessage(player, "spotteddog.teleport.failed.server");
             return;
         }
 
         ServerPlayerEntity serverPlayer = getServerPlayer(server, player);
         if (serverPlayer == null) {
-            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.player"), false);
+            sendSystemMessage(player, "spotteddog.teleport.failed.player");
             return;
         }
 
@@ -145,7 +157,7 @@ public class SingleplayerSpotStrategy implements SpotStrategy {
 
         Optional<GlobalPos> deathPosOpt = serverPlayer.getLastDeathPos();
         if (deathPosOpt.isEmpty()) {
-            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.death.not.found"), false);
+            sendSystemMessage(player, "spotteddog.teleport.failed.death.not.found");
             return;
         }
 
@@ -160,7 +172,7 @@ public class SingleplayerSpotStrategy implements SpotStrategy {
         RegistryKey<World> targetKey = getWorldKey(dimension);
         ServerWorld targetWorld = getWorld(server, targetKey);
         if (targetWorld == null) {
-            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.world"), false);
+            sendSystemMessage(player, "spotteddog.teleport.failed.world");
             return;
         }
 
@@ -197,7 +209,7 @@ public class SingleplayerSpotStrategy implements SpotStrategy {
 
         var respawn = serverPlayer.getRespawn();
         if (respawn == null || respawn.respawnData() == null) {
-            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.teleport.failed.respawn.not.found"), false);
+            sendSystemMessage(player, "spotteddog.teleport.failed.respawn.not.found");
             return false;
         }
 
@@ -231,12 +243,12 @@ public class SingleplayerSpotStrategy implements SpotStrategy {
 
     @Override
     public void publishSpot(ClientPlayerEntity player, Spot spot) {
-        player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.spot.multiplayer.only"), false);
+        sendSystemMessage(player, "spotteddog.spot.multiplayer.only");
     }
 
     @Override
     public void unpublishSpot(ClientPlayerEntity player, String spotName) {
-        player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.spot.multiplayer.only"), false);
+        sendSystemMessage(player, "spotteddog.spot.multiplayer.only");
     }
 
     @Override
@@ -244,10 +256,10 @@ public class SingleplayerSpotStrategy implements SpotStrategy {
         TeleportLogManager logManager = TeleportLogManager.getInstance();
         List<TeleportLogManager.ClientTeleportLog> logs = logManager.getRecentLogs(count);
 
-        player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.log.list.header", logs.size()), false);
+        sendSystemMessage(player, "spotteddog.log.list.header", logs.size());
 
         if (logs.isEmpty()) {
-            player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.log.empty"), false);
+            sendSystemMessage(player, "spotteddog.log.empty");
         } else {
             for (var log : logs) {
                 String spotInfo = log.spotName != null ? log.spotName : log.teleportType;
@@ -263,6 +275,6 @@ public class SingleplayerSpotStrategy implements SpotStrategy {
     @Override
     public void clearLogs(ClientPlayerEntity player) {
         TeleportLogManager.getInstance().clearLogs();
-        player.sendMessage(net.minecraft.text.Text.translatable("spotteddog.log.cleared"), false);
+        sendSystemMessage(player, "spotteddog.log.cleared");
     }
 }
