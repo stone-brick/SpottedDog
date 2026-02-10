@@ -7,16 +7,16 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 
 @Environment(EnvType.CLIENT)
-public class TeleportHandler {
+public class SpotHandler {
 
     /**
-     * 获取当前的传送策略。
+     * 获取当前的策略。
      * 每次调用时动态检查当前模式，确保策略正确。
      */
-    public static TeleportStrategy getStrategy() {
+    public static SpotStrategy getStrategy() {
         return MinecraftClient.getInstance().isInSingleplayer()
-                ? new SingleplayerTeleportStrategy()
-                : new MultiplayerTeleportStrategy();
+                ? new SingleplayerSpotStrategy()
+                : new MultiplayerSpotStrategy();
     }
 
     public static void teleportToSpot(ClientPlayerEntity player, Spot spot) {
@@ -33,5 +33,21 @@ public class TeleportHandler {
 
     public static boolean teleportToRespawn(ClientPlayerEntity player) {
         return getStrategy().teleportToRespawn(player);
+    }
+
+    public static void publishSpot(ClientPlayerEntity player, Spot spot) {
+        getStrategy().publishSpot(player, spot);
+    }
+
+    public static void unpublishSpot(ClientPlayerEntity player, String spotName) {
+        getStrategy().unpublishSpot(player, spotName);
+    }
+
+    public static void showLogs(ClientPlayerEntity player, int count) {
+        getStrategy().showLogs(player, count);
+    }
+
+    public static void clearLogs(ClientPlayerEntity player) {
+        getStrategy().clearLogs(player);
     }
 }

@@ -4,6 +4,7 @@ import io.github.stone_brick.spotteddog.client.data.Spot;
 import io.github.stone_brick.spotteddog.client.network.PublicSpotListHandler;
 import io.github.stone_brick.spotteddog.network.c2s.PublicSpotActionC2SPayload;
 import io.github.stone_brick.spotteddog.network.c2s.PublicSpotTeleportC2SPayload;
+import io.github.stone_brick.spotteddog.network.c2s.TeleportLogAdminC2SPayload;
 import io.github.stone_brick.spotteddog.network.c2s.TeleportRequestC2SPayload;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -18,7 +19,7 @@ import net.minecraft.util.WorldSavePath;
  * 多人模式传送策略实现。
  */
 @Environment(EnvType.CLIENT)
-public class MultiplayerTeleportStrategy implements TeleportStrategy {
+public class MultiplayerSpotStrategy implements SpotStrategy {
 
     @Override
     public void teleportToSpot(ClientPlayerEntity player, Spot spot) {
@@ -53,6 +54,7 @@ public class MultiplayerTeleportStrategy implements TeleportStrategy {
     /**
      * 公开 Spot。
      */
+    @Override
     public void publishSpot(ClientPlayerEntity player, Spot spot) {
         ClientPlayNetworking.send(PublicSpotActionC2SPayload.publish(
                 spot.getName(),
@@ -64,6 +66,7 @@ public class MultiplayerTeleportStrategy implements TeleportStrategy {
     /**
      * 取消公开 Spot。
      */
+    @Override
     public void unpublishSpot(ClientPlayerEntity player, String spotName) {
         ClientPlayNetworking.send(PublicSpotActionC2SPayload.unpublish(spotName));
     }
@@ -108,5 +111,15 @@ public class MultiplayerTeleportStrategy implements TeleportStrategy {
         }
         // 多人模式
         return "multiplayer:" + (client.getCurrentServerEntry() != null ? client.getCurrentServerEntry().address : "unknown");
+    }
+
+    @Override
+    public void showLogs(ClientPlayerEntity player, int count) {
+        ClientPlayNetworking.send(new TeleportLogAdminC2SPayload("list", count));
+    }
+
+    @Override
+    public void clearLogs(ClientPlayerEntity player) {
+        ClientPlayNetworking.send(new TeleportLogAdminC2SPayload("clear", 0));
     }
 }

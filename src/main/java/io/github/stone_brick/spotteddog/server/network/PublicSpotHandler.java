@@ -258,7 +258,7 @@ public class PublicSpotHandler {
                             payload.x(), payload.y(), payload.z(),
                             payload.yaw(), payload.pitch(), payload.dimension());
                     if (success) {
-                        broadcastMessage(server, Text.translatable("spotteddog.public.spot.updated.broadcast", playerName, payload.oldName()).getString());
+                        broadcastMessage(server, Text.translatable("spotteddog.public.spot.updated.broadcast", playerName, payload.oldName()));
                     }
                 }
                 case "rename" -> {
@@ -266,7 +266,7 @@ public class PublicSpotHandler {
                     boolean success = PublicSpotManager.getInstance().renamePublicSpot(
                             playerName, payload.oldName(), payload.newName());
                     if (success) {
-                        broadcastMessage(server, Text.translatable("spotteddog.public.spot.renamed.broadcast", playerName, payload.oldName(), payload.newName()).getString());
+                        broadcastMessage(server, Text.translatable("spotteddog.public.spot.renamed.broadcast", playerName, payload.oldName(), payload.newName()));
                     }
                 }
             }
@@ -274,15 +274,14 @@ public class PublicSpotHandler {
     }
 
     /**
-     * 广播消息给服务器所有玩家。
+     * 广播翻译键给服务器所有玩家（客户端自行翻译）。
      */
-    private static void broadcastMessage(MinecraftServer server, String message) {
+    private static void broadcastMessage(MinecraftServer server, net.minecraft.text.Text message) {
         if (server == null) return;
         var playerManager = server.getPlayerManager();
         if (playerManager == null) return;
-        net.minecraft.text.Text text = net.minecraft.text.Text.literal(message);
         for (ServerPlayerEntity p : playerManager.getPlayerList()) {
-            p.sendMessage(text, false);
+            p.sendMessage(message, false);
         }
     }
 

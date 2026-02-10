@@ -9,19 +9,15 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import io.github.stone_brick.spotteddog.client.data.PlayerDataManager;
 import io.github.stone_brick.spotteddog.client.data.Spot;
-import io.github.stone_brick.spotteddog.client.data.TeleportLogManager;
 import io.github.stone_brick.spotteddog.client.network.PublicSpotListHandler;
 import io.github.stone_brick.spotteddog.client.ui.SpotTableBuilder;
-import io.github.stone_brick.spotteddog.network.c2s.TeleportLogAdminC2SPayload;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ServerInfo;
 import net.minecraft.server.integrated.IntegratedServer;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.WorldSavePath;
 
@@ -104,7 +100,7 @@ public class SpotCommand {
         long now = System.currentTimeMillis();
         if (now - lastPublicSpotRequestTime > REQUEST_COOLDOWN_MS) {
             lastPublicSpotRequestTime = now;
-            if (TeleportHandler.getStrategy() instanceof MultiplayerTeleportStrategy strategy) {
+            if (SpotHandler.getStrategy() instanceof MultiplayerSpotStrategy strategy) {
                 strategy.requestPublicSpotList(null);
             }
         }
@@ -396,15 +392,15 @@ public class SpotCommand {
         // 处理特殊目标（带 . 前缀）
         switch (lowerTarget) {
             case ".death" -> {
-                TeleportHandler.teleportToDeath(player);
+                SpotHandler.teleportToDeath(player);
                 return Command.SINGLE_SUCCESS;
             }
             case ".respawn" -> {
-                TeleportHandler.teleportToRespawn(player);
+                SpotHandler.teleportToRespawn(player);
                 return Command.SINGLE_SUCCESS;
             }
             case ".spawn" -> {
-                TeleportHandler.teleportToSpawn(player);
+                SpotHandler.teleportToSpawn(player);
                 return Command.SINGLE_SUCCESS;
             }
         }
@@ -418,7 +414,7 @@ public class SpotCommand {
             }
 
             // 多人模式当作公开 Spot 处理
-            if (TeleportHandler.getStrategy() instanceof MultiplayerTeleportStrategy strategy) {
+            if (SpotHandler.getStrategy() instanceof MultiplayerSpotStrategy strategy) {
                 strategy.teleportToPublicSpot(player, target);
             }
             return Command.SINGLE_SUCCESS;
@@ -427,7 +423,7 @@ public class SpotCommand {
         // 查找用户保存的 spot
         Optional<Spot> spot = dataManager.getSpot(target);
         if (spot.isPresent()) {
-            TeleportHandler.teleportToSpot(player, spot.get());
+            SpotHandler.teleportToSpot(player, spot.get());
         } else {
             sendFeedback("spotteddog.spot.not.found", target);
         }
@@ -937,12 +933,6 @@ public class SpotCommand {
         ClientPlayerEntity player = getPlayer();
         if (player == null) return 0;
 
-        // 检查是否在单人模式
-        if (MinecraftClient.getInstance().isInSingleplayer()) {
-            sendFeedback("spotteddog.spot.multiplayer.only");
-            return Command.SINGLE_SUCCESS;
-        }
-
         // 检查 Spot 是否存在
         Optional<Spot> spot = dataManager.getSpot(name);
         if (spot.isEmpty()) {
@@ -950,12 +940,8 @@ public class SpotCommand {
             return Command.SINGLE_SUCCESS;
         }
 
-        // 调用多人模式策略公开 Spot
-        TeleportHandler.getStrategy();
-        if (TeleportHandler.getStrategy() instanceof MultiplayerTeleportStrategy strategy) {
-            strategy.publishSpot(player, spot.get());
-        }
-
+        // 使用策略模式（单人模式会提示不可用）
+        SpotHandler.publishSpot(player, spot.get());
         return Command.SINGLE_SUCCESS;
     }
 
@@ -963,48 +949,18 @@ public class SpotCommand {
         ClientPlayerEntity player = getPlayer();
         if (player == null) return 0;
 
-        // 检查是否在单人模式
-        if (MinecraftClient.getInstance().isInSingleplayer()) {
-            sendFeedback("spotteddog.spot.multiplayer.only");
-            return Command.SINGLE_SUCCESS;
-        }
-
-        // 调用多人模式策略取消公开 Spot
-        if (TeleportHandler.getStrategy() instanceof MultiplayerTeleportStrategy strategy) {
-            strategy.unpublishSpot(player, name);
-        }
-
+        // 使用策略模式（单人模式会提示不可用）
+        SpotHandler.unpublishSpot(player, name);
         return Command.SINGLE_SUCCESS;
     }
+
 
     private static int listTeleportLogs(int count) {
         ClientPlayerEntity player = getPlayer();
         if (player == null) return 0;
 
-        if (MinecraftClient.getInstance().isInSingleplayer()) {
-            // 单人模式：直接从本地读取
-            TeleportLogManager logManager = TeleportLogManager.getInstance();
-            List<TeleportLogManager.ClientTeleportLog> logs = logManager.getRecentLogs(count);
-
-            player.sendMessage(Text.translatable("spotteddog.log.list.header", logs.size()), false);
-
-            if (logs.isEmpty()) {
-                player.sendMessage(Text.translatable("spotteddog.log.empty"), false);
-            } else {
-                for (var log : logs) {
-                    String spotInfo = log.spotName != null ? log.spotName : log.teleportType;
-                    String message = String.format("[%s] %s %s -> (%s, %.1f, %.1f, %.1f)",
-                            log.timestamp.substring(11, 19),
-                            log.playerName, spotInfo,
-                            log.targetDimension, log.targetX, log.targetY, log.targetZ);
-                    player.sendMessage(Text.literal(message), false);
-                }
-            }
-        } else {
-            // 多人模式：发送请求到服务端
-            ClientPlayNetworking.send(new TeleportLogAdminC2SPayload("list", count));
-        }
-
+        // 使用策略模式
+        SpotHandler.showLogs(player, count);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -1012,13 +968,8 @@ public class SpotCommand {
         ClientPlayerEntity player = getPlayer();
         if (player == null) return 0;
 
-        if (MinecraftClient.getInstance().isInSingleplayer()) {
-            TeleportLogManager.getInstance().clearLogs();
-            player.sendMessage(Text.translatable("spotteddog.log.cleared"), false);
-        } else {
-            ClientPlayNetworking.send(new TeleportLogAdminC2SPayload("clear", 0));
-        }
-
+        // 使用策略模式
+        SpotHandler.clearLogs(player);
         return Command.SINGLE_SUCCESS;
     }
 }
