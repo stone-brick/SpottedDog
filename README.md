@@ -33,121 +33,29 @@
 | `/spot rename <旧名> <新名>` | 重命名标记点 |
 | `/spot teleport <名称>` | 传送到标记点或特殊目标 |
 | `/spot tp <名称>` | 传送到标记点（简写） |
-| `/spot list` | 列出所有保存的标记点 |
+| `/spot list` | 列出所有保存的标记点（包含公开 Spot） |
 | `/spot public <名称>` | 公开 Spot（仅多人模式） |
 | `/spot unpublic <名称>` | 取消公开 Spot（仅多人模式） |
-| `/spot public list` | 列出公开的 Spot（仅多人模式） |
+| `/spot log list [count]` | 查看传送日志（服务端） |
+| `/spot log clear` | 清除传送日志（服务端） |
 | `/spot whitelist teleport add\|remove\|list <玩家名>` | 传送白名单管理（OP） |
 | `/spot whitelist public add\|remove\|list <玩家名>` | 公开 Spot 白名单管理（OP） |
 | `/spot whitelist publictp add\|remove\|list <玩家名>` | 公开 Spot 传送白名单管理（OP） |
 
 ### 特殊传送目标
 
-`/spot teleport` 命令支持以下特殊目标：
+`/spot teleport` 和 `/spot tp` 命令支持以下特殊目标：
 
-- `.death` - 传送到死亡点
-- `.respawn` - 传送到重生点
-- `.spawn` - 传送到世界出生点
-- `-Spot名-玩家名` - 传送到公开 Spot（仅多人模式）
+| 目标 | 功能 |
+|------|------|
+| `.death` | 传送到死亡点 |
+| `.respawn` | 传送到重生点 |
+| `.spawn` | 传送到世界出生点 |
+| `-Spot名-玩家名` | 传送到公开 Spot（仅多人模式） |
 
-**公开 Spot 示例**：`-home-stone_brick`
-
-## 构建方法
-
-```bash
-# 构建模组
-./gradlew build
-
-# 运行客户端测试
-./gradlew runClient
-
-# 生成数据（配方、战利品表、标签等）
-./gradlew generateData
-
-# 清理构建产物
-./gradlew clean
-
-# 发布到本地 Maven
-./gradlew publishToMavenLocal
-```
-
-## 项目结构
-
-```
-src/
-├── main/
-│   └── java/io/github/stone_brick/spotteddog/
-│       ├── Spotteddog.java              # 主模组入口
-│       ├── network/
-│       │   ├── TeleportType.java        # 传送类型枚举
-│       │   ├── c2s/                     # 客户端到服务端负载
-│       │   │   ├── TeleportRequestC2SPayload.java
-│       │   │   ├── PublicSpotActionC2SPayload.java
-│       │   │   ├── PublicSpotListC2SPayload.java
-│       │   │   ├── PublicSpotTeleportC2SPayload.java
-│       │   │   ├── PublicSpotUpdateC2SPayload.java
-│       │   │   └── WhitelistAdminC2SPayload.java
-│       │   └── s2c/                     # 服务端到客户端负载
-│       │       ├── TeleportConfirmS2CPayload.java
-│       │       └── PublicSpotListS2CPayload.java
-│       └── server/
-│           ├── config/
-│           │   ├── ConfigManager.java   # 配置文件管理
-│           │   └── CooldownManager.java # 冷却时间管理
-│           ├── permission/
-│           │   ├── PermissionManager.java # 权限管理
-│           │   └── WhitelistManager.java # 白名单管理
-│           ├── data/
-│           │   ├── PublicSpot.java      # 公开 Spot 数据模型
-│           │   └── PublicSpotManager.java # 公开 Spot 存储管理
-│           └── network/
-│               ├── TeleportRequestHandler.java  # 服务端传送请求处理
-│               ├── PublicSpotHandler.java       # 公开 Spot 请求处理
-│               └── WhitelistAdminHandler.java   # 白名单管理请求处理
-└── client/
-    └── java/io/github/stone_brick/spotteddog/client/
-        ├── SpotteddogClient.java        # 客户端入口
-        ├── command/
-        │   ├── SpotCommand.java         # 命令实现
-        │   ├── WhitelistAdminCommand.java # 白名单管理命令
-        │   ├── TeleportHandler.java     # 传送处理入口
-        │   ├── TeleportStrategy.java    # 传送策略接口
-        │   ├── SingleplayerTeleportStrategy.java
-        │   └── MultiplayerTeleportStrategy.java
-        ├── data/
-        │   ├── PlayerDataManager.java   # 数据管理
-        │   └── Spot.java                # 标记点数据模型
-        └── network/
-            ├── TeleportConfirmHandler.java   # 客户端传送确认处理
-            ├── PublicSpotListHandler.java    # 公开 Spot 列表处理
-            └── WhitelistAdminHandler.java   # 白名单管理请求发送
-```
-
-## 技术栈
-
-- **Minecraft**: 1.21.11
-- **Java**: 21
-- **Fabric Loader**: 0.18.4+
-- **Fabric API**: 0.141.1+1.21.11
-- **构建工具**: Gradle (fabric-loom 插件)
+**公开 Spot 命名格式**：`-<Spot名>-<玩家名>`，例如 `-home-stone_brick`
 
 ## 配置
-
-### 标记点数据
-
-标记点数据保存在 `spotteddog/data/` 目录下：
-
-```
-spotteddog/
-├── data/
-│   ├── singleplayer/
-│   │   └── <存档文件夹名>/
-│   │       └── spots.json              # 单人模式 Spot
-│   │
-│   └── multiplayer/
-│       └── <服务器文件夹名>/
-│           └── spots.json              # 玩家自己的 Spot
-```
 
 ### 服务端配置
 
@@ -174,28 +82,52 @@ spotteddog/
 | `public_spot_cooldown_seconds` | 5 | 公开/取消公开 Spot 的玩家冷却时间（秒） |
 | `max_public_spot_requests_per_second` | 10 | 全局每秒最大公开/取消公开请求数 |
 
-**权限说明**：默认情况下，只有 OP 玩家可使用传送和公开 Spot 相关功能。设置对应 `allow_all_players_*` 为 `true` 可允许所有玩家使用。
+### 标记点数据
+
+标记点数据保存在 `spotteddog/data/` 目录下：
+
+```
+spotteddog/
+├── data/
+│   ├── singleplayer/
+│   │   └── <存档文件夹名>/
+│   │       └── spots.json              # 单人模式 Spot
+│   │
+│   └── multiplayer/
+│       └── <服务器文件夹名>/
+│           ├── spots.json              # 玩家自己的 Spot
+│           ├── public_spots.json       # 公开 Spot（服务端）
+│           ├── teleport_whitelist.json         # 传送白名单
+│           ├── public_spot_whitelist.json      # 公开 Spot 白名单
+│           └── public_spot_teleport_whitelist.json  # 公开 Spot 传送白名单
+```
 
 ### 公开 Spot 数据
 
 公开 Spot 数据保存在服务端 `spotteddog/data/multiplayer/<服务器>/public_spots.json` 文件中。
 
-### 白名单数据
+## 权限管理
 
-白名单数据保存在服务端 `spotteddog/data/multiplayer/<服务器>/` 目录下：
-- `teleport_whitelist.json` - 传送白名单
-- `public_spot_whitelist.json` - 公开 Spot 白名单
-- `public_spot_teleport_whitelist.json` - 公开 Spot 传送白名单
+### 权限规则
+
+权限检查优先级（从高到低）：
+1. **OP 玩家**：始终拥有所有权限
+2. **白名单玩家**：在对应白名单中则允许
+3. **全局配置**：`allow_all_players_*` 为 true 则允许
+4. **默认拒绝**：不满足以上条件则拒绝
+
+### OP 限制
+
+OP 无法修改自己或其他 OP 的白名单状态。
+
+### 白名单管理
 
 白名单提供细粒度的权限控制。当全局配置 `allow_all_players_*` 为 `false` 时，白名单中的玩家仍可使用对应功能。
 
-**权限检查优先级**：
-1. OP 玩家始终拥有所有权限
-2. 白名单玩家在对应白名单中则允许
-3. 全局配置 `allow_all_players_*` 为 true 则允许
-4. 否则拒绝
-
-**OP 限制**：OP 无法修改自己或其他 OP 的白名单状态。
+白名单文件位于服务端 `spotteddog/data/multiplayer/<服务器>/` 目录：
+- `teleport_whitelist.json` - 传送白名单
+- `public_spot_whitelist.json` - 公开 Spot 白名单
+- `public_spot_teleport_whitelist.json` - 公开 Spot 传送白名单
 
 ## 版本历史
 
@@ -210,6 +142,94 @@ spotteddog/
 | 4.2.0-SNAPSHOT | 数据结构重构、公开 Spot 同步更新、移除 isPublic 字段 |
 | 4.1.0-SNAPSHOT | 公开 Spot 功能、移除成功提示消息 |
 | 4.0.0-SNAPSHOT | 世界出生点修复、服务端安全优化、单人模式消息优化 |
+
+---
+
+## 开发者指南
+
+### 构建方法
+
+```bash
+# 构建模组
+./gradlew build
+
+# 运行客户端测试
+./gradlew runClient
+
+# 生成数据（配方、战利品表、标签等）
+./gradlew generateData
+
+# 清理构建产物
+./gradlew clean
+
+# 发布到本地 Maven
+./gradlew publishToMavenLocal
+```
+
+### 项目结构
+
+```
+src/
+├── main/
+│   └── java/io/github/stone_brick/spotteddog/
+│       ├── Spotteddog.java              # 主模组入口
+│       ├── event/                       # 事件系统
+│       │   └── AdminLogEvent.java       # 管理日志事件
+│       ├── network/
+│       │   ├── TeleportType.java        # 传送类型枚举
+│       │   ├── c2s/                     # 客户端到服务端负载
+│       │   │   ├── TeleportRequestC2SPayload.java
+│       │   │   ├── PublicSpotActionC2SPayload.java
+│       │   │   ├── PublicSpotListC2SPayload.java
+│       │   │   ├── PublicSpotTeleportC2SPayload.java
+│       │   │   ├── PublicSpotUpdateC2SPayload.java
+│       │   │   └── WhitelistAdminC2SPayload.java
+│       │   └── s2c/                     # 服务端到客户端负载
+│       │       ├── TeleportConfirmS2CPayload.java
+│       │       └── PublicSpotListS2CPayload.java
+│       └── server/
+│           ├── config/
+│           │   ├── ConfigManager.java    # 配置文件管理
+│           │   └── CooldownManager.java  # 冷却时间管理
+│           ├── permission/
+│           │   ├── PermissionManager.java # 权限管理
+│           │   └── WhitelistManager.java # 白名单管理
+│           ├── data/
+│           │   ├── PublicSpot.java      # 公开 Spot 数据模型
+│           │   └── PublicSpotManager.java # 公开 Spot 存储管理
+│           └── network/
+│               ├── TeleportRequestHandler.java  # 服务端传送请求处理
+│               ├── PublicSpotHandler.java       # 公开 Spot 请求处理
+│               ├── WhitelistAdminHandler.java   # 白名单管理请求处理
+│               └── TeleportLogHandler.java     # 传送日志处理
+└── client/
+    └── java/io/github/stone_brick/spotteddog/client/
+        ├── SpotteddogClient.java        # 客户端入口
+        ├── command/
+        │   ├── SpotCommand.java         # 命令实现
+        │   ├── WhitelistAdminCommand.java # 白名单管理命令
+        │   ├── TeleportHandler.java     # 传送处理入口
+        │   ├── TeleportStrategy.java    # 传送策略接口
+        │   ├── SingleplayerTeleportStrategy.java
+        │   └── MultiplayerTeleportStrategy.java
+        ├── data/
+        │   ├── PlayerDataManager.java   # 数据管理
+        │   └── Spot.java               # 标记点数据模型
+        ├── ui/
+        │   └── SpotTableBuilder.java   # 表格构建器
+        └── network/
+            ├── TeleportConfirmHandler.java   # 客户端传送确认处理
+            ├── PublicSpotListHandler.java    # 公开 Spot 列表处理
+            └── WhitelistAdminHandler.java   # 白名单管理请求发送
+```
+
+### 技术栈
+
+- **Minecraft**: 1.21.11
+- **Java**: 21
+- **Fabric Loader**: 0.18.4+
+- **Fabric API**: 0.141.1+1.21.11
+- **构建工具**: Gradle (fabric-loom 插件)
 
 ## 许可证
 
@@ -229,7 +249,7 @@ copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRING. NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
