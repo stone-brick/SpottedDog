@@ -329,6 +329,7 @@ public class SpotCommand {
         if (dataManager.addSpot(name, player.getX(), player.getY(), player.getZ(),
                 player.getYaw(), player.getPitch(), getCurrentDimension())) {
             sendSystemMessage("spotteddog.spot.added", name);
+            refreshSpotList();
         } else {
             sendSystemMessage("spotteddog.spot.already.exists", name);
         }
@@ -338,6 +339,7 @@ public class SpotCommand {
     private static int removeSpot(String name) {
         if (dataManager.removeSpot(name)) {
             sendSystemMessage("spotteddog.spot.deleted", name);
+            refreshSpotList();
         } else {
             sendSystemMessage("spotteddog.spot.not.found", name);
         }
@@ -361,6 +363,7 @@ public class SpotCommand {
                             player.getYaw(), player.getPitch(), getCurrentDimension());
                 }
             }
+            refreshSpotList();
         } else {
             sendSystemMessage("spotteddog.spot.not.found", name);
         }
@@ -397,6 +400,7 @@ public class SpotCommand {
             if (wasPublic) {
                 PublicSpotListHandler.sendRenamePublicSpot(oldName, newName);
             }
+            refreshSpotList();
         } else {
             sendSystemMessage("spotteddog.spot.rename.failed");
         }
@@ -655,41 +659,87 @@ public class SpotCommand {
     }
 
     /**
-     * 合并显示 Spot 表格（玩家 Spot + 其他玩家公开 Spot）。
+     * 合并显示 Spot 表格（玩家 Spot + 公开 Spot）。
+     * 显示顺序：纯私有 Spot → 玩家自己公开的 Spot → 其他玩家公开的 Spot
      */
     private static void displaySpotTable(List<Spot> privateSpots, List<PublicSpotListHandler.PublicSpotInfo> publicSpots, boolean isSingleplayer) {
         // 标题
         sendFeedback("spotteddog.spot.list.header");
 
-        // 玩家 Spot 列表
-        if (privateSpots != null && !privateSpots.isEmpty()) {
-            SpotTableBuilder.sendTableHeader(isSingleplayer);
+        if (isSingleplayer) {
+            // 单人模式：只显示私有 Spot
+            if (privateSpots != null && !privateSpots.isEmpty()) {
+                SpotTableBuilder.sendTableHeader(true);
+                for (Spot spot : privateSpots) {
+                    SpotTableBuilder.SpotAction[] actions = getPrivateSpotActionsWithPermission(spot);
+                    SpotTableBuilder.sendPrivateSpotRow(spot, true, actions);
+                }
+            } else {
+                sendSystemMessage("spotteddog.spot.list.empty");
+            }
+            return;
+        }
+
+        // 多人模式：分离不同类型的 Spot
+        String playerName = MinecraftClient.getInstance().player.getName().getString();
+
+        // 1. 纯私有 Spot（未公开的）
+        java.util.List<Spot> purePrivateSpots = new java.util.ArrayList<>();
+        // 2. 玩家自己公开的 Spot
+        java.util.List<Spot> myPublicSpots = new java.util.ArrayList<>();
+
+        if (privateSpots != null) {
             for (Spot spot : privateSpots) {
-                SpotTableBuilder.SpotAction[] actions = getPrivateSpotActionsWithPermission(spot);
-                SpotTableBuilder.sendPrivateSpotRow(spot, isSingleplayer, actions);
+                if (PublicSpotListHandler.isSpotPublic(spot.getName(), playerName)) {
+                    myPublicSpots.add(spot);
+                } else {
+                    purePrivateSpots.add(spot);
+                }
             }
         }
 
-        // 过滤出其他玩家的公开 Spot（排除玩家自己的）
-        if (publicSpots != null && !publicSpots.isEmpty()) {
-            String playerName = MinecraftClient.getInstance().player.getName().getString();
-            List<PublicSpotListHandler.PublicSpotInfo> otherPublicSpots = new java.util.ArrayList<>();
+        // 3. 其他玩家公开的 Spot
+        java.util.List<PublicSpotListHandler.PublicSpotInfo> otherPublicSpots = new java.util.ArrayList<>();
+        if (publicSpots != null) {
             for (PublicSpotListHandler.PublicSpotInfo spot : publicSpots) {
                 if (!spot.getOwnerName().equals(playerName)) {
                     otherPublicSpots.add(spot);
                 }
             }
+        }
 
-            if (!otherPublicSpots.isEmpty()) {
-                // 分隔符
+        // 发送表头
+        SpotTableBuilder.sendTableHeader(false);
+
+        // 显示纯私有 Spot
+        if (!purePrivateSpots.isEmpty()) {
+            for (Spot spot : purePrivateSpots) {
+                SpotTableBuilder.SpotAction[] actions = getPrivateSpotActionsWithPermission(spot);
+                SpotTableBuilder.sendPrivateSpotRow(spot, false, actions);
+            }
+        }
+
+        // 显示玩家自己公开的 Spot
+        if (!myPublicSpots.isEmpty()) {
+            if (!purePrivateSpots.isEmpty()) {
                 SpotTableBuilder.sendSeparator(MinecraftClient.getInstance().textRenderer, SpotTableBuilder.MULTIPLAYER_COLS);
-                // 显示其他玩家公开 Spot 行
-                SpotTableBuilder.SpotAction[] actions = PermissionChecker.canTeleport()
-                        ? new SpotTableBuilder.SpotAction[]{SpotTableBuilder.SpotAction.TELEPORT}
-                        : new SpotTableBuilder.SpotAction[0];
-                for (PublicSpotListHandler.PublicSpotInfo spot : otherPublicSpots) {
-                    SpotTableBuilder.sendOtherPublicSpotRow(spot, actions);
-                }
+            }
+            for (Spot spot : myPublicSpots) {
+                SpotTableBuilder.SpotAction[] actions = getPrivateSpotActionsWithPermission(spot);
+                SpotTableBuilder.sendPrivateSpotRow(spot, false, actions);
+            }
+        }
+
+        // 显示其他玩家公开的 Spot
+        if (!otherPublicSpots.isEmpty()) {
+            if (!purePrivateSpots.isEmpty() || !myPublicSpots.isEmpty()) {
+                SpotTableBuilder.sendSeparator(MinecraftClient.getInstance().textRenderer, SpotTableBuilder.MULTIPLAYER_COLS);
+            }
+            SpotTableBuilder.SpotAction[] actions = PermissionChecker.canTeleport()
+                    ? new SpotTableBuilder.SpotAction[]{SpotTableBuilder.SpotAction.TELEPORT}
+                    : new SpotTableBuilder.SpotAction[0];
+            for (PublicSpotListHandler.PublicSpotInfo spot : otherPublicSpots) {
+                SpotTableBuilder.sendOtherPublicSpotRow(spot, actions);
             }
         }
 
@@ -962,6 +1012,7 @@ public class SpotCommand {
 
         // 使用策略模式（单人模式会提示不可用）
         SpotHandler.publishSpot(player, spot.get());
+        refreshSpotList();
         return Command.SINGLE_SUCCESS;
     }
 
@@ -971,7 +1022,21 @@ public class SpotCommand {
 
         // 使用策略模式（单人模式会提示不可用）
         SpotHandler.unpublishSpot(player, name);
+        refreshSpotList();
         return Command.SINGLE_SUCCESS;
+    }
+
+    /**
+     * 刷新 Spot 列表。
+     */
+    private static void refreshSpotList() {
+        if (MinecraftClient.getInstance().isInSingleplayer()) {
+            // 单人模式：直接刷新
+            listSpots();
+        } else {
+            // 多人模式：请求公开 Spot 列表后刷新
+            PublicSpotListHandler.requestPublicSpotsWithCallback(spots -> listSpots());
+        }
     }
 
 
