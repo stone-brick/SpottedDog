@@ -11,7 +11,9 @@ import net.minecraft.text.Text;
 
 /**
  * 服务端传送日志管理处理器。
- * 处理日志查看和清除请求。
+ * 处理日志查看请求。
+ *
+ * <p>注意：清除日志功能已被禁止，日志只能查看无法清除。</p>
  */
 public class TeleportLogHandler {
 
@@ -38,10 +40,7 @@ public class TeleportLogHandler {
                     int count = Math.min(payload.count(), 100);
                     listTeleportLogs(player, manager, count);
                 }
-                case "clear" -> {
-                    manager.clearLogs();
-                    player.sendMessage(Text.translatable("spotteddog.log.cleared"));
-                }
+                // clear_logs 操作已被禁止，不允许任何人清除日志
             }
         });
     }

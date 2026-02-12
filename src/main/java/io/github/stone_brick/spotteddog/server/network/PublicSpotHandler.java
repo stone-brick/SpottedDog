@@ -1,13 +1,15 @@
 package io.github.stone_brick.spotteddog.server.network;
 
+import io.github.stone_brick.spotteddog.event.AdminLogEvent;
+import io.github.stone_brick.spotteddog.event.AdminLogEvents;
+import io.github.stone_brick.spotteddog.event.TeleportLogEvent;
+import io.github.stone_brick.spotteddog.event.TeleportLogEvents;
 import io.github.stone_brick.spotteddog.network.c2s.*;
 import io.github.stone_brick.spotteddog.network.s2c.PublicSpotListS2CPayload;
 import io.github.stone_brick.spotteddog.network.s2c.TeleportConfirmS2CPayload;
 import io.github.stone_brick.spotteddog.server.config.CooldownManager;
 import io.github.stone_brick.spotteddog.server.data.PublicSpot;
 import io.github.stone_brick.spotteddog.server.data.PublicSpotManager;
-import io.github.stone_brick.spotteddog.server.data.TeleportLog;
-import io.github.stone_brick.spotteddog.server.data.TeleportLogManager;
 import io.github.stone_brick.spotteddog.server.permission.PermissionManager;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -101,6 +103,7 @@ public class PublicSpotHandler {
 
                     if (success) {
                         CooldownManager.updateLastPublicSpotRequest(player);
+                        fireAdminEvent(player, "public_spot", null, payload.spotName(), null);
                         ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.success(
                                 "public", payload.spotName()));
                     } else {
@@ -122,6 +125,7 @@ public class PublicSpotHandler {
 
                     if (success) {
                         CooldownManager.updateLastPublicSpotRequest(player);
+                        fireAdminEvent(player, "unpublic_spot", null, payload.spotName(), null);
                         ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.success(
                                 "unpublic", payload.spotName()));
                     } else {
@@ -258,6 +262,8 @@ public class PublicSpotHandler {
                             payload.x(), payload.y(), payload.z(),
                             payload.yaw(), payload.pitch(), payload.dimension());
                     if (success) {
+                        // 触发管理操作日志事件
+                        fireAdminEvent(player, "update_public_spot", null, payload.oldName(), null);
                         broadcastMessage(server, Text.translatable("spotteddog.public.spot.updated.broadcast", playerName, payload.oldName()));
                     }
                 }
@@ -266,6 +272,8 @@ public class PublicSpotHandler {
                     boolean success = PublicSpotManager.getInstance().renamePublicSpot(
                             playerName, payload.oldName(), payload.newName());
                     if (success) {
+                        // 触发管理操作日志事件
+                        fireAdminEvent(player, "rename_public_spot", null, payload.oldName() + "->" + payload.newName(), null);
                         broadcastMessage(server, Text.translatable("spotteddog.public.spot.renamed.broadcast", playerName, payload.oldName(), payload.newName()));
                     }
                 }
@@ -291,7 +299,7 @@ public class PublicSpotHandler {
      */
     private static boolean teleportToPublicSpot(ServerPlayerEntity player, ServerWorld world, PublicSpot spot) {
         try {
-            // 记录源位置
+            // 记录源位置（用于日志）
             String sourceDim = player.getEntityWorld().getRegistryKey().getValue().toString();
             double sourceX = player.getX();
             double sourceY = player.getY();
@@ -300,8 +308,8 @@ public class PublicSpotHandler {
             player.teleport(world, spot.getX(), spot.getY(), spot.getZ(),
                     EnumSet.noneOf(PositionFlag.class), spot.getYaw(), spot.getPitch(), false);
 
-            // 记录日志
-            logPublicSpotTeleport(player, spot, sourceDim, sourceX, sourceY, sourceZ);
+            // 触发传送日志事件（通过事件系统记录日志）
+            fireTeleportLogEvent(player, spot, sourceDim, sourceX, sourceY, sourceZ);
 
             return true;
         } catch (Exception e) {
@@ -310,19 +318,16 @@ public class PublicSpotHandler {
     }
 
     /**
-     * 记录公开 Spot 传送日志。
+     * 触发传送日志事件（公开 Spot）。
      */
-    private static void logPublicSpotTeleport(ServerPlayerEntity player, PublicSpot spot,
-                                               String sourceDim, double sourceX, double sourceY, double sourceZ) {
-        TeleportLog log = TeleportLog.builder()
-                .playerName(player.getName().getString())
-                .playerUuid(player.getUuid().toString())
-                .teleportType("public_spot")
-                .spotName(spot.getFullName())
-                .source(sourceDim, sourceX, sourceY, sourceZ)
-                .target(spot.getDimension(), spot.getX(), spot.getY(), spot.getZ())
-                .build();
-        TeleportLogManager.getInstance().logTeleport(log);
+    private static void fireTeleportLogEvent(ServerPlayerEntity player, PublicSpot spot,
+                                              String sourceDim, double sourceX, double sourceY, double sourceZ) {
+        TeleportLogEvent event = new TeleportLogEvent(
+                player, "public_spot", spot.getFullName(),
+                sourceDim, sourceX, sourceY, sourceZ,
+                spot.getWorldKey(), spot.getX(), spot.getY(), spot.getZ()
+        );
+        TeleportLogEvents.TELEPORT.invoker().onTeleport(event);
     }
 
     /**
@@ -338,5 +343,21 @@ public class PublicSpotHandler {
                 yield RegistryKey.of(RegistryKeys.WORLD, dimId);
             }
         };
+    }
+
+    /**
+     * 触发管理操作日志事件。
+     */
+    private static void fireAdminEvent(ServerPlayerEntity operator, String operationType,
+                                       String targetPlayer, String spotName, String whitelistType) {
+        AdminLogEvent event = new AdminLogEvent(
+                operator.getName().getString(),
+                operator.getUuid().toString(),
+                operationType,
+                targetPlayer,
+                spotName,
+                whitelistType
+        );
+        AdminLogEvents.ADMIN_OPERATION.invoker().onAdminOperation(event);
     }
 }

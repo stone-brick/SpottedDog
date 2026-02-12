@@ -3,8 +3,11 @@ package io.github.stone_brick.spotteddog.server.permission;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.SerializedName;
+import io.github.stone_brick.spotteddog.event.AdminLogEvent;
+import io.github.stone_brick.spotteddog.event.AdminLogEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -173,12 +176,13 @@ public final class WhitelistManager {
     /**
      * 将玩家添加到白名单。
      *
+     * @param operator 执行操作的 OP 玩家（可为 null，如果为 null 则不触发事件）
      * @param playerUuid 玩家 UUID
      * @param playerName 玩家名称
      * @param type       白名单类型
      * @return true 如果添加成功（玩家原本不在白名单中）
      */
-    public static synchronized boolean addPlayerToWhitelist(UUID playerUuid, String playerName, WhitelistType type) {
+    public static synchronized boolean addPlayerToWhitelist(ServerPlayerEntity operator, UUID playerUuid, String playerName, WhitelistType type) {
         WhitelistData data = getWhitelist(type);
 
         if (data.players == null) {
@@ -200,17 +204,25 @@ public final class WhitelistManager {
         // 添加新条目
         data.players.add(new WhitelistEntry(uuidString, playerName));
         saveWhitelist(type, data);
+
+        // 触发事件
+        if (operator != null) {
+            fireAdminEvent(operator, "whitelist_add", playerName, null, type.name());
+        }
+
         return true;
     }
 
     /**
      * 将玩家从白名单移除。
      *
+     * @param operator 执行操作的 OP 玩家（可为 null，如果为 null 则不触发事件）
      * @param playerUuid 玩家 UUID
+     * @param playerName 玩家名称（用于日志记录）
      * @param type       白名单类型
      * @return true 如果移除成功（玩家原本在白名单中）
      */
-    public static synchronized boolean removePlayerFromWhitelist(UUID playerUuid, WhitelistType type) {
+    public static synchronized boolean removePlayerFromWhitelist(ServerPlayerEntity operator, UUID playerUuid, String playerName, WhitelistType type) {
         WhitelistData data = getWhitelist(type);
         if (data.players == null) {
             return false;
@@ -222,6 +234,11 @@ public final class WhitelistManager {
 
         if (removed) {
             saveWhitelist(type, data);
+
+            // 触发事件
+            if (operator != null) {
+                fireAdminEvent(operator, "whitelist_remove", playerName, null, type.name());
+            }
         }
         return removed;
     }
@@ -254,5 +271,21 @@ public final class WhitelistManager {
     public static List<WhitelistEntry> getAllEntries(WhitelistType type) {
         WhitelistData data = getWhitelist(type);
         return data.players != null ? new ArrayList<>(data.players) : new ArrayList<>();
+    }
+
+    /**
+     * 触发管理操作日志事件。
+     */
+    private static void fireAdminEvent(ServerPlayerEntity operator, String operationType,
+                                       String targetPlayer, String spotName, String whitelistType) {
+        AdminLogEvent event = new AdminLogEvent(
+                operator.getName().getString(),
+                operator.getUuid().toString(),
+                operationType,
+                targetPlayer,
+                spotName,
+                whitelistType
+        );
+        AdminLogEvents.ADMIN_OPERATION.invoker().onAdminOperation(event);
     }
 }

@@ -6,12 +6,22 @@ import java.time.Instant;
 /**
  * 传送日志条目。
  * 记录每次传送的详细信息用于审计追踪。
+ *
+ * <p>同时也用于记录管理操作（白名单、公开 Spot）：</p>
+ * <ul>
+ *   <li>传送日志: player_name/player_uuid 记录执行者</li>
+ *   <li>管理日志: operator_name/operator_uuid 记录执行者，target_player 记录目标</li>
+ * </ul>
  */
 public class TeleportLog {
 
     @SerializedName("timestamp")
     private String timestamp;
 
+    @SerializedName("type")
+    private String type;  // teleport_type 或 admin_operation
+
+    // 传送日志字段
     @SerializedName("player_name")
     private String playerName;
 
@@ -48,12 +58,26 @@ public class TeleportLog {
     @SerializedName("target_z")
     private double targetZ;
 
+    // 管理日志字段
+    @SerializedName("operator_name")
+    private String operatorName;
+
+    @SerializedName("operator_uuid")
+    private String operatorUuid;
+
+    @SerializedName("target_player")
+    private String targetPlayer;
+
+    @SerializedName("whitelist_type")
+    private String whitelistType;
+
     public TeleportLog() {
         this.timestamp = Instant.now().toString();
     }
 
     private TeleportLog(Builder builder) {
         this.timestamp = Instant.now().toString();
+        this.type = builder.type;
         this.playerName = builder.playerName;
         this.playerUuid = builder.playerUuid;
         this.teleportType = builder.teleportType;
@@ -66,6 +90,10 @@ public class TeleportLog {
         this.targetX = builder.targetX;
         this.targetY = builder.targetY;
         this.targetZ = builder.targetZ;
+        this.operatorName = builder.operatorName;
+        this.operatorUuid = builder.operatorUuid;
+        this.targetPlayer = builder.targetPlayer;
+        this.whitelistType = builder.whitelistType;
     }
 
     public static Builder builder() {
@@ -73,6 +101,7 @@ public class TeleportLog {
     }
 
     public static class Builder {
+        private String type = "teleport";
         private String playerName;
         private String playerUuid;
         private String teleportType;
@@ -85,6 +114,15 @@ public class TeleportLog {
         private double targetX;
         private double targetY;
         private double targetZ;
+        private String operatorName;
+        private String operatorUuid;
+        private String targetPlayer;
+        private String whitelistType;
+
+        public Builder type(String type) {
+            this.type = type;
+            return this;
+        }
 
         public Builder playerName(String playerName) {
             this.playerName = playerName;
@@ -122,6 +160,22 @@ public class TeleportLog {
             return this;
         }
 
+        public Builder operator(String name, String uuid) {
+            this.operatorName = name;
+            this.operatorUuid = uuid;
+            return this;
+        }
+
+        public Builder targetPlayer(String targetPlayer) {
+            this.targetPlayer = targetPlayer;
+            return this;
+        }
+
+        public Builder whitelistType(String whitelistType) {
+            this.whitelistType = whitelistType;
+            return this;
+        }
+
         public TeleportLog build() {
             return new TeleportLog(this);
         }
@@ -129,6 +183,7 @@ public class TeleportLog {
 
     // Getters
     public String getTimestamp() { return timestamp; }
+    public String getType() { return type; }
     public String getPlayerName() { return playerName; }
     public String getPlayerUuid() { return playerUuid; }
     public String getTeleportType() { return teleportType; }
@@ -141,4 +196,8 @@ public class TeleportLog {
     public double getTargetX() { return targetX; }
     public double getTargetY() { return targetY; }
     public double getTargetZ() { return targetZ; }
+    public String getOperatorName() { return operatorName; }
+    public String getOperatorUuid() { return operatorUuid; }
+    public String getTargetPlayer() { return targetPlayer; }
+    public String getWhitelistType() { return whitelistType; }
 }

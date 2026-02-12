@@ -1,5 +1,9 @@
 package io.github.stone_brick.spotteddog;
 
+import io.github.stone_brick.spotteddog.event.AdminLogEvents;
+import io.github.stone_brick.spotteddog.event.DefaultAdminLogLogger;
+import io.github.stone_brick.spotteddog.event.DefaultTeleportLogLogger;
+import io.github.stone_brick.spotteddog.event.TeleportLogEvents;
 import io.github.stone_brick.spotteddog.server.network.PublicSpotHandler;
 import io.github.stone_brick.spotteddog.server.network.TeleportLogHandler;
 import io.github.stone_brick.spotteddog.server.network.TeleportRequestHandler;
@@ -19,5 +23,9 @@ public class Spotteddog implements ModInitializer {
         PublicSpotHandler.register();
         WhitelistAdminHandler.register();
         TeleportLogHandler.register();
+
+        // 注册日志事件监听器
+        TeleportLogEvents.TELEPORT.register(new DefaultTeleportLogLogger());
+        AdminLogEvents.ADMIN_OPERATION.register(new DefaultAdminLogLogger());
     }
 }

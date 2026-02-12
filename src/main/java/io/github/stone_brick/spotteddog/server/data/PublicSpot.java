@@ -112,4 +112,20 @@ public class PublicSpot {
         this.pitch = pitch;
         this.dimension = dimension;
     }
+
+    /**
+     * 获取目标维度 RegistryKey。
+     * 用于事件系统中传递目标维度。
+     */
+    public net.minecraft.registry.RegistryKey<net.minecraft.world.World> getWorldKey() {
+        return switch (dimension) {
+            case "minecraft:overworld", "overworld" -> net.minecraft.world.World.OVERWORLD;
+            case "minecraft:the_nether", "nether" -> net.minecraft.world.World.NETHER;
+            case "minecraft:the_end", "the_end", "end" -> net.minecraft.world.World.END;
+            default -> {
+                net.minecraft.util.Identifier dimId = net.minecraft.util.Identifier.of(dimension);
+                yield net.minecraft.registry.RegistryKey.of(net.minecraft.registry.RegistryKeys.WORLD, dimId);
+            }
+        };
+    }
 }

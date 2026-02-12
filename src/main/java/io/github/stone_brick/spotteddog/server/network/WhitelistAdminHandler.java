@@ -1,5 +1,7 @@
 package io.github.stone_brick.spotteddog.server.network;
 
+import io.github.stone_brick.spotteddog.event.AdminLogEvent;
+import io.github.stone_brick.spotteddog.event.AdminLogEvents;
 import io.github.stone_brick.spotteddog.network.c2s.WhitelistAdminC2SPayload;
 import io.github.stone_brick.spotteddog.server.permission.PermissionManager;
 import io.github.stone_brick.spotteddog.server.permission.WhitelistManager;
@@ -69,21 +71,41 @@ public class WhitelistAdminHandler {
 
             // 执行操作
             if (add) {
-                boolean added = WhitelistManager.addPlayerToWhitelist(targetUuid, playerName, type);
+                boolean added = WhitelistManager.addPlayerToWhitelist(player, targetUuid, playerName, type);
                 if (added) {
                     player.sendMessage(Text.translatable("spotteddog.whitelist.added.success", playerName, getTypeNameKey(type)));
+                    // 触发管理操作日志事件
+                    fireAdminLogEvent(player, "whitelist_add", playerName, null, getWhitelistTypeKey(type));
                 } else {
                     player.sendMessage(Text.translatable("spotteddog.whitelist.already.in", playerName));
                 }
             } else {
-                boolean removed = WhitelistManager.removePlayerFromWhitelist(targetUuid, type);
+                boolean removed = WhitelistManager.removePlayerFromWhitelist(player, targetUuid, playerName, type);
                 if (removed) {
                     player.sendMessage(Text.translatable("spotteddog.whitelist.removed.success", playerName, getTypeNameKey(type)));
+                    // 触发管理操作日志事件
+                    fireAdminLogEvent(player, "whitelist_remove", playerName, null, getWhitelistTypeKey(type));
                 } else {
                     player.sendMessage(Text.translatable("spotteddog.whitelist.not.in", playerName));
                 }
             }
         });
+    }
+
+    /**
+     * 触发管理操作日志事件。
+     */
+    private static void fireAdminLogEvent(ServerPlayerEntity operator, String operationType,
+                                          String targetPlayer, String spotName, String whitelistType) {
+        AdminLogEvent event = new AdminLogEvent(
+                operator.getName().getString(),
+                operator.getUuid().toString(),
+                operationType,
+                targetPlayer,
+                spotName,
+                whitelistType
+        );
+        AdminLogEvents.ADMIN_OPERATION.invoker().onAdminOperation(event);
     }
 
     /**
@@ -94,6 +116,17 @@ public class WhitelistAdminHandler {
             case TELEPORT -> "spotteddog.whitelist.type.teleport";
             case PUBLIC_SPOT -> "spotteddog.whitelist.type.public";
             case PUBLIC_SPOT_TELEPORT -> "spotteddog.whitelist.type.publictp";
+        };
+    }
+
+    /**
+     * 获取白名单类型的日志键名。
+     */
+    private static String getWhitelistTypeKey(WhitelistManager.WhitelistType type) {
+        return switch (type) {
+            case TELEPORT -> "teleport";
+            case PUBLIC_SPOT -> "public";
+            case PUBLIC_SPOT_TELEPORT -> "publictp";
         };
     }
 }

@@ -160,6 +160,17 @@ public class TeleportLogManager {
     }
 
     /**
+     * 记录一次管理操作。
+     */
+    public synchronized void logAdminOperation(TeleportLog entry) {
+        if (!io.github.stone_brick.spotteddog.server.config.ConfigManager.isTeleportLogEnabled()) {
+            return;
+        }
+        logs.add(entry);
+        saveLogs();
+    }
+
+    /**
      * 获取最近的日志（倒序，最新的在前）。
      */
     public synchronized List<TeleportLog> getRecentLogs(int count) {

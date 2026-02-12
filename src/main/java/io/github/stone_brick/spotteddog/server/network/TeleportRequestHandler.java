@@ -1,11 +1,11 @@
 package io.github.stone_brick.spotteddog.server.network;
 
+import io.github.stone_brick.spotteddog.event.TeleportLogEvent;
+import io.github.stone_brick.spotteddog.event.TeleportLogEvents;
 import io.github.stone_brick.spotteddog.network.c2s.TeleportRequestC2SPayload;
 import io.github.stone_brick.spotteddog.network.s2c.TeleportConfirmS2CPayload;
 import io.github.stone_brick.spotteddog.server.config.ConfigManager;
 import io.github.stone_brick.spotteddog.server.config.CooldownManager;
-import io.github.stone_brick.spotteddog.server.data.TeleportLog;
-import io.github.stone_brick.spotteddog.server.data.TeleportLogManager;
 import io.github.stone_brick.spotteddog.server.permission.PermissionManager;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -50,6 +50,11 @@ public class TeleportRequestHandler {
 
             String type = payload.type();
             String targetName = payload.targetName();
+            // 记录源位置
+            String sourceDimension = player.getEntityWorld().getRegistryKey().getValue().toString();
+            double sourceX = player.getX();
+            double sourceY = player.getY();
+            double sourceZ = player.getZ();
 
             // 验证冷却时间
             if (CooldownManager.isInCooldown(player)) {
@@ -86,6 +91,9 @@ public class TeleportRequestHandler {
             if (result.success()) {
                 // 传送成功，更新冷却时间
                 CooldownManager.updateLastTeleport(player);
+                // 触发传送事件
+                fireTeleportEvent(player, payload.type(), result.spotName(), sourceDimension, sourceX, sourceY, sourceZ,
+                        result.targetDimension(), result.targetX(), result.targetY(), result.targetZ());
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.success(payload.type(), payload.targetName()));
             } else {
                 ServerPlayNetworking.send(player, TeleportConfirmS2CPayload.failure(type, targetName, result.message()));
@@ -96,12 +104,16 @@ public class TeleportRequestHandler {
     /**
      * 传送结果。
      */
-    private record TeleportResult(boolean success, String message) {
-        static TeleportResult ok() {
-            return new TeleportResult(true, "");
+    private record TeleportResult(boolean success, String message, RegistryKey<World> targetDimension,
+                                  double targetX, double targetY, double targetZ, String spotName) {
+        static TeleportResult ok(RegistryKey<World> dim, double x, double y, double z, String spotName) {
+            return new TeleportResult(true, "", dim, x, y, z, spotName);
+        }
+        static TeleportResult okWithSpot(String dim, double x, double y, double z, String spotName) {
+            return new TeleportResult(true, "", getWorldKey(dim), x, y, z, spotName);
         }
         static TeleportResult fail(String message) {
-            return new TeleportResult(false, message);
+            return new TeleportResult(false, message, null, 0, 0, 0, null);
         }
     }
 
@@ -111,11 +123,6 @@ public class TeleportRequestHandler {
     private static TeleportResult executeTeleport(ServerPlayerEntity player, TeleportRequestC2SPayload payload) {
         String type = payload.type();
         MinecraftServer server = player.getEntityWorld().getServer();
-        // 记录源位置
-        String sourceDimension = player.getEntityWorld().getRegistryKey().getValue().toString();
-        double sourceX = player.getX();
-        double sourceY = player.getY();
-        double sourceZ = player.getZ();
         // 对于 spawn/respawn/death，使用玩家当前朝向；spot 使用保存的朝向
         float yaw = payload.type().equals("spot") ? payload.yaw() : player.getYaw();
         float pitch = payload.type().equals("spot") ? payload.pitch() : player.getPitch();
@@ -133,11 +140,8 @@ public class TeleportRequestHandler {
                 double targetZ = spawnPos.getZ() + 0.5;
 
                 boolean success = teleportTo(player, World.OVERWORLD, targetX, targetY, targetZ, yaw, pitch);
-                if (success) {
-                    logTeleport(player, type, null, sourceDimension, sourceX, sourceY, sourceZ,
-                            World.OVERWORLD.getValue().toString(), targetX, targetY, targetZ);
-                }
-                yield success ? TeleportResult.ok() : TeleportResult.fail("spotteddog.teleport.failed.generic");
+                yield success ? TeleportResult.ok(World.OVERWORLD, targetX, targetY, targetZ, null)
+                              : TeleportResult.fail("spotteddog.teleport.failed.generic");
             }
             case "respawn" -> {
                 // 获取重生点（BlockPos 需要添加 0.5 偏移，保持玩家当前朝向）
@@ -146,12 +150,12 @@ public class TeleportRequestHandler {
                     yield TeleportResult.fail("spotteddog.respawn.not.found");
                 }
                 BlockPos pos = respawn.respawnData().getPos();
-                boolean success = teleportTo(player, World.OVERWORLD, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, yaw, pitch);
-                if (success) {
-                    logTeleport(player, type, null, sourceDimension, sourceX, sourceY, sourceZ,
-                            World.OVERWORLD.getValue().toString(), pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
-                }
-                yield success ? TeleportResult.ok() : TeleportResult.fail("spotteddog.teleport.failed.generic");
+                double tx = pos.getX() + 0.5;
+                double ty = pos.getY();
+                double tz = pos.getZ() + 0.5;
+                boolean success = teleportTo(player, World.OVERWORLD, tx, ty, tz, yaw, pitch);
+                yield success ? TeleportResult.ok(World.OVERWORLD, tx, ty, tz, null)
+                              : TeleportResult.fail("spotteddog.teleport.failed.generic");
             }
             case "death" -> {
                 // 获取死亡点（BlockPos 需要添加 0.5 偏移，保持玩家当前朝向）
@@ -162,12 +166,12 @@ public class TeleportRequestHandler {
                 GlobalPos deathPos = deathPosOpt.get();
                 BlockPos pos = deathPos.pos();
                 // GlobalPos.dimension() 直接返回 RegistryKey<World>
-                boolean success = teleportTo(player, deathPos.dimension(), pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, yaw, pitch);
-                if (success) {
-                    logTeleport(player, type, null, sourceDimension, sourceX, sourceY, sourceZ,
-                            deathPos.dimension().getValue().toString(), pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
-                }
-                yield success ? TeleportResult.ok() : TeleportResult.fail("spotteddog.teleport.failed.generic");
+                double tx = pos.getX() + 0.5;
+                double ty = pos.getY();
+                double tz = pos.getZ() + 0.5;
+                boolean success = teleportTo(player, deathPos.dimension(), tx, ty, tz, yaw, pitch);
+                yield success ? TeleportResult.ok(deathPos.dimension(), tx, ty, tz, null)
+                              : TeleportResult.fail("spotteddog.teleport.failed.generic");
             }
             case "spot" -> {
                 // spot 类型使用客户端发送的坐标（玩家坐标，无需偏移）
@@ -178,11 +182,8 @@ public class TeleportRequestHandler {
                 String spotName = payload.targetName();
                 RegistryKey<World> worldKey = getWorldKey(dimension);
                 boolean success = teleportTo(player, worldKey, x, y, z, yaw, pitch);
-                if (success) {
-                    logTeleport(player, type, spotName, sourceDimension, sourceX, sourceY, sourceZ,
-                            dimension, x, y, z);
-                }
-                yield success ? TeleportResult.ok() : TeleportResult.fail("spotteddog.teleport.failed.generic");
+                yield success ? TeleportResult.okWithSpot(dimension, x, y, z, spotName)
+                              : TeleportResult.fail("spotteddog.teleport.failed.generic");
             }
             default -> TeleportResult.fail("spotteddog.teleport.unknown.type");
         };
@@ -218,19 +219,16 @@ public class TeleportRequestHandler {
     }
 
     /**
-     * 记录传送日志。
+     * 触发传送日志事件。
      */
-    private static void logTeleport(ServerPlayerEntity player, String type, String spotName,
-                                     String sourceDim, double sourceX, double sourceY, double sourceZ,
-                                     String targetDim, double targetX, double targetY, double targetZ) {
-        TeleportLog log = TeleportLog.builder()
-                .playerName(player.getName().getString())
-                .playerUuid(player.getUuid().toString())
-                .teleportType(type)
-                .spotName(spotName)
-                .source(sourceDim, sourceX, sourceY, sourceZ)
-                .target(targetDim, targetX, targetY, targetZ)
-                .build();
-        TeleportLogManager.getInstance().logTeleport(log);
+    private static void fireTeleportEvent(ServerPlayerEntity player, String type, String spotName,
+                                          String sourceDim, double sourceX, double sourceY, double sourceZ,
+                                          RegistryKey<World> targetDim, double targetX, double targetY, double targetZ) {
+        TeleportLogEvent event = new TeleportLogEvent(
+                player, type, spotName,
+                sourceDim, sourceX, sourceY, sourceZ,
+                targetDim, targetX, targetY, targetZ
+        );
+        TeleportLogEvents.TELEPORT.invoker().onTeleport(event);
     }
 }
