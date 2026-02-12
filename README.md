@@ -133,8 +133,8 @@ OP 无法修改自己或其他 OP 的白名单状态。
 
 | 版本 | 变更 |
 |------|------|
-| 5.3.1 | 公开 Spot 列表排序优化（私有 Spot → 自己公开的 Spot → 其他玩家公开的 Spot）、Spot 操作后自动刷新列表 |
-| 5.4.0-SNAPSHOT | 传送日志审计功能、事件系统重构 |
+| 5.4.1 | 公开 Spot 列表排序优化（私有 Spot → 自己公开的 Spot → 其他玩家公开的 Spot）、Spot 操作后自动刷新列表 |
+| 5.5.0-SNAPSHOT | 传送日志审计功能、事件系统重构 |
 | 5.3.0-SNAPSHOT | 提取表格构建为 SpotTableBuilder、合并公开 Spot 列表到 /spot list、添加交互式操作列 |
 | 5.1.0-SNAPSHOT | 白名单权限管理功能、OP 自我保护限制 |
 | 5.0.0-SNAPSHOT | 权限管理、独立的公开 Spot 冷却、传送到公开 Spot 权限 |
