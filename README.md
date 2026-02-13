@@ -1,20 +1,27 @@
 # SpottedDog
 
-一个 Minecraft Fabric 模组，用于 Minecraft 1.21.11，提供标记点管理和传送功能。
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](https://opensource.org/licenses/MIT)
+![Environment](https://img.shields.io/badge/Environment-Client%20%26%20Server-4caf50?style=flat-square)
+![Static Badge](https://img.shields.io/badge/Minecraft-1.21.11-5395FD?style=flat-square)
+![Static Badge](https://img.shields.io/badge/Java-21-ED8B00?style=flat-square)
+
+[![fabric](https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/compact/supported/fabric_vector.svg)](https://fabricmc.net/)
+
+一个 Minecraft Fabric 模组，用于 Minecraft 1.21.11，提供标记点（路径点）管理和传送功能。支持单人/多人模式，自动记录死亡点、传送位置保存与恢复，公开标记点分享，以及完善的权限控制体系。
+
+> **Spot**：指玩家保存的位置坐标，即 Minecraft 社区常用的 “Waypoint（路径点）”，这里为了说明和模组命令的风格考虑用更简短的“Spot”。
 
 ## 功能特性
 
-- **标记点管理**：添加、删除、重命名和更新标记点位置（含朝向）
-- **快速传送**：一键传送到保存的标记点或特殊位置（死亡点、重生点、世界出生点）
-- **智能策略模式**：根据游戏模式（单人/多人）自动选择最佳传送方式
-- **自动死亡记录**：自动记录玩家死亡位置
-- **朝向保存与恢复**：传送时保持玩家当前朝向（特殊目标）或恢复保存的朝向（自定义标记点）
-- **服务端安全优化**：传送冷却时间、全局速率限制、公开列表请求冷却
-- **公开 Spot**（多人模式）：将你的 Spot 公开给其他玩家，其他玩家可直接传送到公开 Spot
-- **白名单权限**（OP）：细粒度控制普通玩家的功能权限
-- **本地化支持**：支持中文和英文，根据游戏语言设置自动切换
-- **简洁消息**：传送成功无打扰提示，失败时显示错误信息
-- **传送日志审计**（服务端）：记录所有传送和管理操作，禁止清除日志以保证审计完整性
+- **标记点管理**：添加、删除、重命名和更新标记点（含坐标和朝向）
+- **快速传送**：传送到保存的标记点或特殊目标（重生点、死亡点和世界出生点）
+- **交互式 Spot 列表**：表格化显示，支持点击快捷操作
+- **自动死亡记录**：玩家死亡时自动保存位置，一键返回死亡点
+- **公开 Spot**（多人模式）：将 Spot 分享给其他玩家，支持查看和传送到他人公开的 Spot
+- **权限管理**：基于 OP 级别的权限控制，支持由白名单控制每个功能的权限配置
+- **传送日志审计**：服务端记录所有传送和管理操作
+- **数据隔离**：按存档/服务器独立存储数据
+- **本地化翻译**：根据游戏语言设置自动切换界面语言
 
 ## 安装方法
 
@@ -25,26 +32,28 @@
 
 ## 命令列表
 
-| 命令 | 功能 |
-|------|------|
-| `/spot add <名称>` | 在当前位置添加标记点 |
-| `/spot remove <名称>` | 删除指定标记点 |
-| `/spot update <名称>` | 更新标记点到当前位置 |
-| `/spot rename <旧名> <新名>` | 重命名标记点 |
-| `/spot teleport <名称>` | 传送到标记点或特殊目标 |
-| `/spot tp <名称>` | 传送到标记点（简写） |
-| `/spot list` | 列出所有保存的标记点（包含公开 Spot） |
-| `/spot public <名称>` | 公开 Spot（仅多人模式） |
-| `/spot unpublic <名称>` | 取消公开 Spot（仅多人模式） |
-| `/spot log list [count]` | 查看传送日志（服务端） |
-| `/spot log clear` | 清除传送日志（服务端） |
-| `/spot whitelist teleport add\|remove\|list <玩家名>` | 传送白名单管理（OP） |
-| `/spot whitelist public add\|remove\|list <玩家名>` | 公开 Spot 白名单管理（OP） |
+虽然列出了许多命令，但在游戏中使用 `/spot list` 查看 Spot 列表时，大多数操作（T 传送 / R 删除 / U 更新 / E 重命名 / P 公开）都可以直接点击完成，无需手动输入命令。
+
+| 命令 | 功能                  |
+|------|---------------------|
+| `/spot add <名称>` | 在当前位置添加标记点          |
+| `/spot remove <名称>` | 删除指定标记点             |
+| `/spot update <名称>` | 更新标记点到当前位置          |
+| `/spot rename <旧名> <新名>` | 重命名标记点              |
+| `/spot teleport <名称>` | 传送到标记点或特殊目标         |
+| `/spot tp <名称>` | 传送到标记点（简写）          |
+| `/spot list` | 列出所有保存的标记点（包含公开的）   |
+| `/spot public <名称>` | 公开 Spot（仅多人模式）      |
+| `/spot unpublic <名称>` | 取消公开 Spot（仅多人模式）    |
+| `/spot log list [count]` | 查看传送日志（服务端）         |
+| `/spot log clear` | 清除传送日志（服务端）         |
+| `/spot whitelist teleport add\|remove\|list <玩家名>` | 传送白名单管理（OP）         |
+| `/spot whitelist public add\|remove\|list <玩家名>` | 公开 Spot 白名单管理（OP）   |
 | `/spot whitelist publictp add\|remove\|list <玩家名>` | 公开 Spot 传送白名单管理（OP） |
 
 ### 特殊传送目标
 
-`/spot teleport` 和 `/spot tp` 命令支持以下特殊目标：
+`/spot teleport` 和 `/spot tp` 命令支持以下特殊目标，在输入 `<名称>` 时可以通过输入 `.` 和 `-` 依靠自动补全进行筛选：
 
 | 目标 | 功能 |
 |------|------|
@@ -53,7 +62,33 @@
 | `.spawn` | 传送到世界出生点 |
 | `-Spot名-玩家名` | 传送到公开 Spot（仅多人模式） |
 
-**公开 Spot 命名格式**：`-<Spot名>-<玩家名>`，例如 `-home-stone_brick`
+**传送时的公开 Spot 全名格式**：`-<Spot名>-<玩家名>`，例如 `-home-stone_brick`
+
+## Spot数据
+
+### 存储结构
+
+Spot 数据保存在 `spotteddog/data/` 目录下：
+
+```
+spotteddog/
+├── data/
+│   ├── singleplayer/
+│   │   └── <存档文件夹名>/
+│   │       └── spots.json              # 单人模式 Spot
+│   │
+│   └── multiplayer/
+│       └── <服务器文件夹名>/
+│           ├── spots.json              # 玩家自己的 Spot
+│           ├── public_spots.json       # 公开 Spot（服务端）
+│           ├── teleport_whitelist.json         # 传送白名单
+│           ├── public_spot_whitelist.json      # 公开 Spot 白名单
+│           └── public_spot_teleport_whitelist.json  # 公开 Spot 传送白名单
+```
+
+### 公开 Spot
+
+公开 Spot 数据保存在服务端 `spotteddog/data/multiplayer/<服务器>/public_spots.json` 文件中。
 
 ## 配置
 
@@ -82,30 +117,6 @@
 | `public_spot_cooldown_seconds` | 5 | 公开/取消公开 Spot 的玩家冷却时间（秒） |
 | `max_public_spot_requests_per_second` | 10 | 全局每秒最大公开/取消公开请求数 |
 
-### 标记点数据
-
-标记点数据保存在 `spotteddog/data/` 目录下：
-
-```
-spotteddog/
-├── data/
-│   ├── singleplayer/
-│   │   └── <存档文件夹名>/
-│   │       └── spots.json              # 单人模式 Spot
-│   │
-│   └── multiplayer/
-│       └── <服务器文件夹名>/
-│           ├── spots.json              # 玩家自己的 Spot
-│           ├── public_spots.json       # 公开 Spot（服务端）
-│           ├── teleport_whitelist.json         # 传送白名单
-│           ├── public_spot_whitelist.json      # 公开 Spot 白名单
-│           └── public_spot_teleport_whitelist.json  # 公开 Spot 传送白名单
-```
-
-### 公开 Spot 数据
-
-公开 Spot 数据保存在服务端 `spotteddog/data/multiplayer/<服务器>/public_spots.json` 文件中。
-
 ## 权限管理
 
 ### 权限规则
@@ -118,7 +129,7 @@ spotteddog/
 
 ### OP 限制
 
-OP 无法修改自己或其他 OP 的白名单状态。
+考虑到可能存在临时的OP，为防止权限泄漏，OP 无法修改自己或其他 OP 的白名单状态。
 
 ### 白名单管理
 
@@ -133,7 +144,7 @@ OP 无法修改自己或其他 OP 的白名单状态。
 
 | 版本 | 变更 |
 |------|------|
-| 5.4.1 | 公开 Spot 列表排序优化（私有 Spot → 自己公开的 Spot → 其他玩家公开的 Spot）、Spot 操作后自动刷新列表 |
+| 5.4.1 | 公开 Spot 列表排序优化、Spot 操作后自动刷新列表 |
 | 5.4.0-SNAPSHOT | 传送日志审计功能、事件系统重构 |
 | 5.3.0-SNAPSHOT | 提取表格构建为 SpotTableBuilder、合并公开 Spot 列表到 /spot list、添加交互式操作列 |
 | 5.1.0-SNAPSHOT | 白名单权限管理功能、OP 自我保护限制 |
@@ -146,25 +157,6 @@ OP 无法修改自己或其他 OP 的白名单状态。
 ---
 
 ## 开发者指南
-
-### 构建方法
-
-```bash
-# 构建模组
-./gradlew build
-
-# 运行客户端测试
-./gradlew runClient
-
-# 生成数据（配方、战利品表、标签等）
-./gradlew generateData
-
-# 清理构建产物
-./gradlew clean
-
-# 发布到本地 Maven
-./gradlew publishToMavenLocal
-```
 
 ### 项目结构
 
@@ -230,27 +222,3 @@ src/
 - **Fabric Loader**: 0.18.4+
 - **Fabric API**: 0.141.1+1.21.11
 - **构建工具**: Gradle (fabric-loom 插件)
-
-## 许可证
-
-MIT License
-
-Copyright (c) 2026 stone_brick
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRING. NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
